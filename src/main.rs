@@ -18,8 +18,7 @@ struct OrgContent<'t> {
 
 #[derive(Debug)]
 enum OrgObject<'t> {
-	Header(Header<'t>),
-	TodoHeader(TodoHeader<'t>),
+	Header(Header<'t>, Option<&'t OrgObject<'t>>),
 	Text(&'t str),
 }
 
@@ -27,36 +26,52 @@ enum OrgObject<'t> {
 struct Header<'t> {
 	level: usize,
 	text: &'t str,
+	status: Option<&'t str>,
 }
 
-#[derive(Debug)]
-struct TodoHeader<'t> {
+impl<'t> Header<'t> {
+	fn header(
+		level: usize,
+		text: &'t str,
+	) -> Header<'t> {
+		return Header {
+			level: level,
+			text: text,
+			status: None,
+		};
+	}
+
+	fn todo(
+		level: usize,
+		status: &'t str,
+		text: &'t str,
+	) -> Header<'t> {
+		return Header {
+			level: level,
+			text: text,
+			status: Some(status),
+		};
+	}
+}
+
+fn parse_status<'t>(
 	level: usize,
-	status: &'t str,
-	text: &'t str,
+	status: &'static str,
+	line: &'t str
+) -> Header<'t> {
+	let (label, text) = line.split_at(status.len());
+
+	return Header::todo(
+		level, label, text
+	);
 }
 
-impl<'t> OrgObject<'t> {
-	fn header(level: usize, text: &'t str) -> OrgObject<'t> {
-		return OrgObject::Header(Header {
-			level: level,
-			text: text,
-		});
-	}
-
-	fn todo(level: usize, status: &'t str, text: &'t str) -> OrgObject<'t> {
-		return OrgObject::TodoHeader(TodoHeader {
-			level: level,
-			status: status,
-			text: text,
-		});
-	}
-}
-
-fn parse_header<'t, I: Iterator<Item = &'t &'t str>>(
-	possible_states: &mut I,
+fn parse_header<'t>(
+	possible_states: &'t [&'static str],
 	line: &'t str,
-) -> Option<OrgObject<'t>> {
+) -> Option<Header<'t>> {
+	println!("{}", line);
+
 	let header_level = line.bytes().take_while(|byte| byte == &HEADER_CHAR).count();
 
 	if header_level == 0 {
@@ -66,26 +81,17 @@ fn parse_header<'t, I: Iterator<Item = &'t &'t str>>(
 	let (_, text) = line.split_at(header_level);
 	let text = text.trim();
 
-	let status_label: Option<&str> = possible_states
-		.find(|&&label| text.starts_with(label))
-		.map(|&label| label);
+	let header: Header = possible_states
+		.iter()
+		.find(|&&label| {
+			text.starts_with(label)
+		})
+		.map(|&label| {
+			parse_status(header_level, label, text)
+		})
+		.unwrap_or(Header::header(header_level, text));
 
-	let object = match status_label {
-		Some(label) => {
-			let (label, text) = text.split_at(label.len());
-			OrgObject::todo(header_level, label, text.trim())
-		}
-		None => OrgObject::header(header_level, text.trim()),
-	};
-
-	return Some(object);
-}
-
-fn parse_line<'t>(line: &'t str) -> OrgObject<'t> {
-	let mut possible_states = STATUS_LABELS.iter();
-
-	return parse_header(&mut possible_states, line)
-		.unwrap_or(OrgObject::Text(line));
+	return Some(header);
 }
 
 fn parse_org_text<'t>(text: &'t String) -> OrgContent<'t> {
@@ -93,10 +99,14 @@ fn parse_org_text<'t>(text: &'t String) -> OrgContent<'t> {
 
 	let mut objects = Vec::new();
 
+	let mut current_header: Option<OrgObject> = None;
+
+	let possible_states = &STATUS_LABELS;
+
 	for line in lines {
-		let object = parse_line(line);
-		println!("{:?}", object);
-		objects.push(object);
+		let header = parse_header(possible_states, line);
+		println!("{:?}", header);
+		//objects.push(object);
 	}
 
 	return OrgContent {
