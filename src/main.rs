@@ -35,5 +35,12 @@ fn main() -> std::io::Result<()> {
 
 	println!("{:?}", content);
 
+	content.map(|content| {
+		for object in content.objects {
+			println!("{}", object);
+		}
+	}).expect("error parsing text");
+
+
 	return Ok(());
 }

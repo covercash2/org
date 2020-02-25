@@ -1,8 +1,30 @@
+use std::{
+	fmt,
+	fmt::Display,
+};
 
 #[derive(Debug)]
 pub enum OrgObject<'t> {
 	Header(Header<'t>, Vec<OrgObject<'t>>),
 	Text(&'t str),
+}
+
+impl<'t> Display for OrgObject<'t> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			OrgObject::Header(header, objects) => {
+				write!(f, "{}", header)?;
+
+				for object in objects {
+					write!(f, "{}", object)?;
+				}
+			},
+			OrgObject::Text(string) => {
+				write!(f, "{}", string)?;
+			}
+		}
+		return Ok(());
+	}
 }
 
 #[derive(Debug)]
@@ -11,6 +33,18 @@ pub struct Header<'t> {
 	title: &'t str,
 	status: Option<&'t str>,
 }
+
+impl<'t> Display for Header<'t> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let level_indicator = "*".repeat(self.level);
+
+		match self.status {
+			Some(status) => write!(f, "{} {} {}", level_indicator, status, self.title),
+			None => write!(f, "{} {}", level_indicator, self.title),
+		}
+	}
+}
+
 
 impl<'t> Header<'t> {
 	pub fn new_root() -> Header<'t> {
