@@ -2,45 +2,45 @@
 
 use ncurses::*;
 
-use std::{fs::File, io::prelude::*, io::BufReader, str::{FromStr, Lines}};
+use std::{fs::File, io::prelude::*, io::BufReader};
 
+mod config;
 pub mod object;
 pub mod parser;
 
-const PATH: &'static str = "/mnt/space/notes/emacs.org";
-
-const STATUS_LABELS: [&'static str; 3] = ["TODO", "STARTED", "DONE"];
-
 #[derive(Debug)]
 pub struct OrgContent<'t> {
-	text: &'t str,
-	objects: Vec<object::OrgObject<'t>>,
+    text: &'t str,
+    objects: Vec<object::OrgObject<'t>>,
 }
 
 fn main() -> std::io::Result<()> {
-	let file = File::open(PATH)?;
-	let text = {
-		let mut buf_reader = BufReader::new(file);
-		let mut text = String::new();
-		buf_reader.read_to_string(&mut text)?;
-		text
-	};
+    let config = config::Config::from_command_line_parameters()
+        .expect("could not parse command line parameters");
 
-	let mut parser = parser::Parser::new(
-		&text,
-		STATUS_LABELS.to_vec(),
-	);
+    let file = File::open(config.file_path)?;
+    let text = {
+        let mut buf_reader = BufReader::new(file);
+        let mut text = String::new();
+        buf_reader.read_to_string(&mut text)?;
+        text
+    };
 
-	let content = parser.parse();
+    let label_iter = config.status_labels.iter().map(AsRef::as_ref);
 
-	println!("{:?}", content);
+    let mut parser = parser::Parser::new(&text, label_iter);
 
-	content.map(|content| {
-		for object in content.objects {
-			println!("{}", object);
-		}
-	}).expect("error parsing text");
+    let content = parser.parse();
 
+    println!("{:?}", content);
 
-	return Ok(());
+    content
+        .map(|content| {
+            for object in content.objects {
+                println!("{}", object);
+            }
+        })
+        .expect("error parsing text");
+
+    return Ok(());
 }
