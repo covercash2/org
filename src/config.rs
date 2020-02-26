@@ -1,6 +1,6 @@
 use clap::{App, Arg};
 
-const PATH: &'static str = "/mnt/space/notes/emacs.org";
+const PATH: &'static str = "/mnt/space/notes/orgmode.org";
 
 const STATUS_LABELS: [&'static str; 3] = ["TODO", "STARTED", "DONE"];
 

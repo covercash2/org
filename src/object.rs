@@ -3,6 +3,7 @@ use std::{fmt, fmt::Display};
 #[derive(Debug)]
 pub enum OrgObject<'t> {
     Header(Header<'t>, Vec<OrgObject<'t>>),
+    List(ListItem<'t>),
     Text(&'t str),
 }
 
@@ -19,6 +20,9 @@ impl<'t> Display for OrgObject<'t> {
             OrgObject::Text(string) => {
                 write!(f, "{}", string)?;
             }
+	    OrgObject::List(list_item) => {
+		write!(f, "{}", list_item);
+	    }
         }
         return Ok(());
     }
@@ -69,5 +73,17 @@ impl<'t> Header<'t> {
 
     pub fn level(&self) -> usize {
         self.level
+    }
+}
+
+#[derive(Debug)]
+pub struct ListItem<'t> {
+    pub bullet: &'t str,
+    pub content: &'t str,
+}
+
+impl<'t> Display for ListItem<'t> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+	write!(f, "{} {}", self.bullet, self.content)
     }
 }
