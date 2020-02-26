@@ -1,4 +1,4 @@
-use std::{str::Lines};
+use std::str::Lines;
 
 use super::{
     object::{Header, OrgObject},
