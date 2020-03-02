@@ -21,7 +21,7 @@ impl<'t> Display for OrgObject<'t> {
                 write!(f, "{}", string)?;
             }
 	    OrgObject::List(list_item) => {
-		write!(f, "{}", list_item);
+		write!(f, "{}", list_item)?;
 	    }
         }
         return Ok(());
