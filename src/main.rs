@@ -8,12 +8,6 @@ mod config;
 pub mod object;
 pub mod parser;
 
-#[derive(Debug)]
-pub struct OrgContent<'t> {
-    text: &'t str,
-    objects: Vec<object::OrgObject<'t>>,
-}
-
 fn main() -> std::io::Result<()> {
     let config = config::Config::from_command_line_parameters()
         .expect("could not parse command line parameters");
@@ -31,8 +25,6 @@ fn main() -> std::io::Result<()> {
     let mut parser = parser::Parser::new(&text, label_iter);
 
     let content = parser.parse();
-
-    println!("{:?}", content);
 
     content
         .map(|content| {

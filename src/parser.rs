@@ -1,8 +1,7 @@
 use std::str::Lines;
 
 use super::{
-    object::{Header, ListItem, OrgObject},
-    OrgContent,
+    object::{Header, OrgContent, ListItem, OrgObject},
 };
 
 pub struct Parser<'t> {
@@ -20,7 +19,7 @@ const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 impl<'t> Parser<'t> {
     pub fn new<I: Iterator<Item = &'t str>>(text: &'t str, possible_states: I) -> Parser<'t> {
         let mut iterator = text.lines();
-        let current_line = iterator.next().expect("unable to read text");
+	let current_line = iterator.next().expect("text is empty");
 
         let states: Vec<&str> = possible_states.collect();
 
@@ -144,7 +143,7 @@ fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Head
         .iter()
         .find(|&&label| text.starts_with(label))
         .map(|&label| parse_status(header_level, label, text))
-        .unwrap_or(Header::header(header_level, text));
+        .unwrap_or(Header::simple_header(header_level, text));
 
     return Some(header);
 }
