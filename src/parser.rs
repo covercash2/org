@@ -9,6 +9,7 @@ pub struct Parser<'t> {
     current_line: Option<&'t str>,
 }
 
+const TAG_CHAR: char = ':';
 const HEADER_CHAR: u8 = 42; // * characer code
                             // TODO add * to list bullets
                             // or not. that seems stupid
@@ -147,9 +148,7 @@ fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Head
         return None;
     }
 
-    for byte in line.as_bytes() {
-        print!("{}", byte);
-    }
+    print_bytes(line);
 
     // trim header markers, '*'
     let (_, text) = line.split_at(level);
@@ -167,9 +166,14 @@ fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Head
 
     let title = text;
 
-    let header = Header {
-	level, title, status, tags
-    };
+    let header = Header::new(level, title, status, tags);
 
     return Some(header);
+}
+
+fn print_bytes(text: &str) {
+    for byte in text.as_bytes() {
+	print!("{:x} ", byte);
+    }
+    println!("\n{}", text);
 }

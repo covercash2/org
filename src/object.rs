@@ -51,26 +51,54 @@ impl<'t> Display for OrgObject<'t> {
 impl<'t> Display for Header<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let level_indicator = "*".repeat(self.level);
-        let tag_string = self.tags.join(":");
+        let tag_string = self.tags.as_ref().map(|tags| tags.join(":"));
 
-        match self.status {
-            Some(status) => write!(
-                f,
-                "{} {} {} {}",
-                level_indicator, status, self.title, tag_string
-            ),
-            None => write!(f, "{} {}", level_indicator, self.title),
+        match (self.status, tag_string) {
+            (Some(status), None) => {
+		write!(
+		    f,
+		    "{} {} {}",
+		    level_indicator, status, self.title
+		)
+	    },
+	    (None, Some(tag_string)) => {
+		write!(
+		    f,
+		    "{} {} {}",
+		    level_indicator, self.title, tag_string,
+		)
+	    }
+	    (Some(status), Some(tag_string)) => {
+		write!(
+		    f,
+		    "{} {} {} {}",
+		    level_indicator, status, self.title, tag_string,
+		)
+	    }
+            (None, None) => write!(f, "{} {}", level_indicator, self.title),
         }
     }
 }
 
 impl<'t> Header<'t> {
+
+    pub fn new(
+	level: usize,
+	title: &'t str,
+	status: Option<&'t str>,
+	tags: Option<Vec<&'t str>>,
+    ) -> Header<'t> {
+	Header {
+	    level, title, status, tags,
+	}
+    }
+
     pub fn new_root() -> Header<'t> {
         Header {
             level: 0,
             title: "root",
             status: None,
-            tags: vec![],
+            tags: None,
         }
     }
 
@@ -79,7 +107,7 @@ impl<'t> Header<'t> {
             level,
             title,
             status: None,
-            tags: vec![],
+            tags: None,
         }
     }
 
@@ -88,7 +116,7 @@ impl<'t> Header<'t> {
             level,
             title,
             status: Some(status),
-            tags: vec![],
+            tags: None,
         }
     }
 
