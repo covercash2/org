@@ -18,7 +18,7 @@ pub struct Header<'t> {
     level: usize,
     title: &'t str,
     status: Option<&'t str>,
-    tags: Vec<&'t str>,
+    tags: Option<Vec<&'t str>>,
 }
 
 #[derive(Debug)]

@@ -1,8 +1,6 @@
 use std::str::Lines;
 
-use super::{
-    object::{Header, OrgContent, ListItem, OrgObject},
-};
+use super::object::{Header, ListItem, OrgContent, OrgObject};
 
 pub struct Parser<'t> {
     text: &'t str,
@@ -19,7 +17,7 @@ const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 impl<'t> Parser<'t> {
     pub fn new<I: Iterator<Item = &'t str>>(text: &'t str, possible_states: I) -> Parser<'t> {
         let mut iterator = text.lines();
-	let current_line = iterator.next().expect("text is empty");
+        let current_line = iterator.next().expect("text is empty");
 
         let states: Vec<&str> = possible_states.collect();
 
@@ -123,27 +121,55 @@ fn parse_unordered_item<'t>(
         .map(|(bullet, rem)| (bullet, rem.trim()))
 }
 
-fn parse_status<'t>(level: usize, status: &str, line: &'t str) -> Header<'t> {
-    let (label, text) = line.split_at(status.len());
+/// parse status from the front of `text`
+/// given the possible states.
+/// returns the status and the remaining text, respectively,
+/// or None if no status is found.
+fn parse_status<'t>(text: &'t str, possible_states: &[&str]) -> Option<(&'t str, &'t str)> {
+    possible_states
+        .iter()
+        .find(|&&state| text.starts_with(state))
+        .map(|state| text.split_at(state.len()))
+        .map(|(status, text)| (status, text.trim()))
+}
 
-    return Header::todo(level, label, text.trim());
+/// parse tags from the end of `text` and
+/// return the trimmed `text` and the tags
+/// or `None` if there are no tags
+fn parse_tags<'t>(text: &'t str) -> Option<(Vec<&'t str>, &'t str)> {
+    return None;
 }
 
 fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Header<'t>> {
-    let header_level = line.bytes().take_while(|byte| byte == &HEADER_CHAR).count();
+    let level = line.bytes().take_while(|byte| byte == &HEADER_CHAR).count();
 
-    if header_level == 0 {
+    if level == 0 {
         return None;
     }
 
-    let (_, text) = line.split_at(header_level);
+    for byte in line.as_bytes() {
+        print!("{}", byte);
+    }
+
+    // trim header markers, '*'
+    let (_, text) = line.split_at(level);
     let text = text.trim();
 
-    let header: Header = possible_states
-        .iter()
-        .find(|&&label| text.starts_with(label))
-        .map(|&label| parse_status(header_level, label, text))
-        .unwrap_or(Header::simple_header(header_level, text));
+    let (status, text) = match parse_status(text, possible_states) {
+	Some((status, rem)) => (Some(status), rem),
+	None => (None, text)
+    };
+
+    let (tags, text) = match parse_tags(text) {
+	Some((tags, rem)) => (Some(tags), rem),
+	None => (None, text),
+    };
+
+    let title = text;
+
+    let header = Header {
+	level, title, status, tags
+    };
 
     return Some(header);
 }
