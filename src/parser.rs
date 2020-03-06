@@ -68,8 +68,6 @@ impl<'t> Parser<'t> {
                     // TODO aggregate text
                     let text = self.parse_content(line);
 
-                    println!("{:?}", text);
-
                     objects.push(text);
                     self.advance_iterator();
                 }
@@ -138,7 +136,22 @@ fn parse_status<'t>(text: &'t str, possible_states: &[&str]) -> Option<(&'t str,
 /// return the trimmed `text` and the tags
 /// or `None` if there are no tags
 fn parse_tags<'t>(text: &'t str) -> Option<(Vec<&'t str>, &'t str)> {
-    return None;
+    text.trim()
+        .rfind(char::is_whitespace)
+	.map(|i| text.split_at(i))
+        .and_then(|(text, tag_str)| {
+            let tags: Vec<&'t str> = tag_str
+                .split_terminator(TAG_CHAR)
+                .filter(|tag| !tag.contains(' '))
+                .filter(|tag| tag.len() != 0)
+                .collect();
+
+	    if tags.len() == 0 {
+		None
+	    } else {
+		Some((tags, text))
+	    }
+        })
 }
 
 fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Header<'t>> {
@@ -148,20 +161,18 @@ fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Head
         return None;
     }
 
-    print_bytes(line);
-
     // trim header markers, '*'
     let (_, text) = line.split_at(level);
     let text = text.trim();
 
     let (status, text) = match parse_status(text, possible_states) {
-	Some((status, rem)) => (Some(status), rem),
-	None => (None, text)
+        Some((status, rem)) => (Some(status), rem),
+        None => (None, text),
     };
 
     let (tags, text) = match parse_tags(text) {
-	Some((tags, rem)) => (Some(tags), rem),
-	None => (None, text),
+        Some((tags, rem)) => (Some(tags), rem),
+        None => (None, text),
     };
 
     let title = text;
@@ -173,7 +184,7 @@ fn parse_header_line<'t>(line: &'t str, possible_states: &[&str]) -> Option<Head
 
 fn print_bytes(text: &str) {
     for byte in text.as_bytes() {
-	print!("{:x} ", byte);
+        print!("{:x} ", byte);
     }
     println!("\n{}", text);
 }
