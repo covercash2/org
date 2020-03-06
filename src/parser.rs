@@ -138,7 +138,7 @@ fn parse_status<'t>(text: &'t str, possible_states: &[&str]) -> Option<(&'t str,
 fn parse_tags<'t>(text: &'t str) -> Option<(Vec<&'t str>, &'t str)> {
     text.trim()
         .rfind(char::is_whitespace)
-	.map(|i| text.split_at(i))
+        .map(|i| text.split_at(i))
         .and_then(|(text, tag_str)| {
             let tags: Vec<&'t str> = tag_str
                 .split_terminator(TAG_CHAR)
@@ -146,11 +146,11 @@ fn parse_tags<'t>(text: &'t str) -> Option<(Vec<&'t str>, &'t str)> {
                 .filter(|tag| tag.len() != 0)
                 .collect();
 
-	    if tags.len() == 0 {
-		None
-	    } else {
-		Some((tags, text))
-	    }
+            if tags.len() == 0 {
+                None
+            } else {
+                Some((tags, text))
+            }
         })
 }
 
