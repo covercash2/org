@@ -71,7 +71,7 @@ impl<'t> Display for Header<'t> {
 	    (Some(status), Some(tag_string)) => {
 		write!(
 		    f,
-		    "{} {} {} {}",
+		    "{} {} {} :{}:",
 		    level_indicator, status, self.title, tag_string,
 		)
 	    }

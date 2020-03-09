@@ -149,7 +149,7 @@ fn parse_tags<'t>(text: &'t str) -> Option<(Vec<&'t str>, &'t str)> {
             if tags.len() == 0 {
                 None
             } else {
-                Some((tags, text))
+                Some((tags, text.trim()))
             }
         })
 }
