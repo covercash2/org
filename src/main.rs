@@ -7,8 +7,9 @@ use std::{fs::File, io::prelude::*, io::BufReader};
 mod config;
 pub mod object;
 pub mod parser;
+pub mod error;
 
-fn main() -> std::io::Result<()> {
+fn main() -> error::OrgError {
     let config = config::Config::from_command_line_parameters()
         .expect("could not parse command line parameters");
 
