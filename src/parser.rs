@@ -1,6 +1,10 @@
 use std::str::Lines;
 
-use super::object::{Header, ListItem, OrgContent, OrgObject};
+use super::{
+    error,
+    error::OrgError,
+    object::{Header, ListItem, OrgContent, OrgObject},
+};
 
 pub struct Parser<'t> {
     text: &'t str,
@@ -18,7 +22,7 @@ const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 pub fn parse_org_text<'t, I: Iterator<Item = &'t str>>(
     text: &'t str,
     status_labels: I,
-) -> Result<OrgContent<'t>, &'static str> {
+) -> error::Result<OrgContent<'t>> {
     Parser::new(text, status_labels).parse()
 }
 
@@ -37,7 +41,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<OrgContent<'t>, &'static str> {
+    pub fn parse(&mut self) -> error::Result<OrgContent<'t>> {
         let root_header = Header::new_root();
 
         match self.parse_objects(root_header) {
@@ -45,7 +49,9 @@ impl<'t> Parser<'t> {
                 text: self.text,
                 objects,
             }),
-            _ => Err("unexpected error: Parser::parse_objects should return a OrgObject::Header"),
+            _ => Err(OrgError::Unexpected(
+                "Parser::parse_objects should return a OrgObject::Header".into(),
+            )),
         }
     }
 

@@ -2,12 +2,13 @@ use std::io;
 use std::error;
 use std::fmt;
 
-type Result<T> = std::result::Result<T, OrgError>;
+pub type Result<T> = std::result::Result<T, OrgError>;
 
 #[derive(Debug)]
 pub enum OrgError {
     IoError(io::Error),
     ParseError(usize, String),
+    Unexpected(String),
 }
 
 impl From<io::Error> for OrgError {
@@ -22,6 +23,8 @@ impl fmt::Display for OrgError {
 	    OrgError::IoError(io_error) => write!(f, "{}", io_error),
 	    OrgError::ParseError(line, msg) =>
 		write!(f, "error parsing line: {}\n{}", line, msg),
+	    OrgError::Unexpected(msg) =>
+		write!(f, "unexpected error:\n{}", msg)
 	}
     }
 }
