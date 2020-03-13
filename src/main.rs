@@ -22,9 +22,7 @@ fn main() -> std::io::Result<()> {
 
     let label_iter = config.status_labels.iter().map(AsRef::as_ref);
 
-    let mut parser = parser::Parser::new(&text, label_iter);
-
-    let content = parser.parse();
+    let content = parser::parse_org_text(&text, label_iter);
 
     content
         .map(|content| {

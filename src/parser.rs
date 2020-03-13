@@ -15,6 +15,13 @@ const HEADER_CHAR: u8 = 42; // * characer code
                             // or not. that seems stupid
 const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 
+pub fn parse_org_text<'t, I: Iterator<Item = &'t str>>(
+    text: &'t str,
+    status_labels: I,
+) -> Result<OrgContent<'t>, &'static str> {
+    Parser::new(text, status_labels).parse()
+}
+
 impl<'t> Parser<'t> {
     pub fn new<I: Iterator<Item = &'t str>>(text: &'t str, possible_states: I) -> Parser<'t> {
         let mut iterator = text.lines();
