@@ -9,7 +9,7 @@ pub mod object;
 pub mod parser;
 pub mod error;
 
-fn main() -> error::OrgError {
+fn main() -> error::Result<()> {
     let config = config::Config::from_command_line_parameters()
         .expect("could not parse command line parameters");
 
