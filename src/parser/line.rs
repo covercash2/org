@@ -7,18 +7,18 @@ const HEADER_CHAR: u8 = 42; // * characer code
 const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 
 pub enum Line<'t> {
-    Text(usize, &'t str),
-    Header(usize, Header<'t>),
-    ListItem(usize, ListItem<'t>),
+    Text(&'t str),
+    Header(Header<'t>),
+    ListItem(ListItem<'t>),
 }
 
 // TODO only parse_line should be pub
 
-pub fn parse_line<'t>(line_num: usize, line: &'t str, possible_states: &[&str]) -> Line<'t> {
+pub fn parse_line<'t>(line: &'t str, possible_states: &[&str]) -> Line<'t> {
     parse_header_line(line, possible_states)
-        .map(|header| Line::Header(line_num, header))
-        .or(parse_list_item(line).map(|list_item| Line::ListItem(line_num, list_item)))
-        .unwrap_or(Line::Text(line_num, line))
+        .map(|header| Line::Header(header))
+        .or(parse_list_item(line).map(|list_item| Line::ListItem(list_item)))
+        .unwrap_or(Line::Text(line))
 }
 
 pub fn parse_list_item(line: &str) -> Option<ListItem> {
@@ -153,9 +153,8 @@ mod tests {
     fn test_good_headers() {
         // check that all lines are headers
         assert!(GOOD_HEADERS.iter().all(|line: &&str| {
-            let line_num = 0;
-            match parse_line(line_num, line, &TEST_STATES) {
-                Line::Header(_line_num, _header) => true,
+            match parse_line(line, &TEST_STATES) {
+                Line::Header(_header) => true,
                 _ => false,
             }
         }))
@@ -164,9 +163,8 @@ mod tests {
     #[test]
     fn test_good_list_items() {
         assert!(GOOD_LIST_ITEMS.iter().all(|line: &&str| {
-            let line_num = 0;
-            match parse_line(line_num, line, &TEST_STATES) {
-                Line::ListItem(_line_num, _list_item) => true,
+            match parse_line(line, &TEST_STATES) {
+                Line::ListItem(_list_item) => true,
                 _ => false,
             }
         }))

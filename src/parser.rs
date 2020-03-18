@@ -67,9 +67,9 @@ impl<'t> Parser<'t> {
     fn parse_objects(&mut self, header: Header<'t>) -> OrgObject<'t> {
         let mut objects: Vec<OrgObject> = Vec::new();
 
-        while let Some((line_num, line)) = self.get_line() {
-            match line::parse_line(line_num, line, &self.states) {
-                Line::Header(_line_num, new_header) => {
+        while let Some((_line_num, line)) = self.get_line() {
+            match line::parse_line(line, &self.states) {
+                Line::Header(new_header) => {
                     if new_header.level() > header.level() {
                         objects.push(self.parse_objects(new_header));
                         self.advance_iterator();
@@ -77,11 +77,11 @@ impl<'t> Parser<'t> {
                         return OrgObject::Header(new_header, objects);
                     }
                 }
-                Line::ListItem(_line_num, new_list_item) => {
+                Line::ListItem(new_list_item) => {
                     objects.push(OrgObject::List(new_list_item));
                     self.advance_iterator();
                 }
-                Line::Text(_line_num, new_text) => {
+                Line::Text(new_text) => {
                     objects.push(OrgObject::Text(new_text));
                     self.advance_iterator();
                 }
