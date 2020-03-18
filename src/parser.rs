@@ -7,12 +7,15 @@ use super::{
 };
 
 mod line;
+use line::Line;
+
+type RawLine<'t> = (usize, &'t str);
 
 pub struct Parser<'t> {
     text: &'t str,
     states: Vec<&'t str>,
-    iterator: Lines<'t>,
-    current_line: Option<&'t str>,
+    iterator: std::iter::Enumerate<Lines<'t>>,
+    current_line: Option<RawLine<'t>>,
 }
 
 pub fn parse_org_text<'t, I: Iterator<Item = &'t str>>(
@@ -24,7 +27,7 @@ pub fn parse_org_text<'t, I: Iterator<Item = &'t str>>(
 
 impl<'t> Parser<'t> {
     pub fn new<I: Iterator<Item = &'t str>>(text: &'t str, possible_states: I) -> Parser<'t> {
-        let mut iterator = text.lines();
+        let mut iterator = text.lines().enumerate();
         let current_line = iterator.next().expect("text is empty");
 
         let states: Vec<&str> = possible_states.collect();
@@ -51,7 +54,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    fn get_line(&self) -> Option<&'t str> {
+    fn get_line(&self) -> Option<RawLine<'t>> {
         self.current_line
     }
 
@@ -62,33 +65,28 @@ impl<'t> Parser<'t> {
     fn parse_objects(&mut self, header: Header<'t>) -> OrgObject<'t> {
         let mut objects: Vec<OrgObject> = Vec::new();
 
-        while let Some(line) = self.get_line() {
-            match line::parse_header_line(line, &self.states) {
-                Some(new_header) => {
+        while let Some((line_num, line)) = self.get_line() {
+
+	    match line::parse_line(line_num, line, &self.states) {
+		Line::Header(_line_num, new_header) => {
                     if new_header.level() > header.level() {
                         objects.push(self.parse_objects(new_header));
                         self.advance_iterator();
                     } else {
                         return OrgObject::Header(new_header, objects);
                     }
-                }
-                None => {
-                    // just text
-                    // TODO aggregate text
-                    let text = self.parse_content(line);
-
-                    objects.push(text);
-                    self.advance_iterator();
-                }
-            }
+		},
+		Line::ListItem(_line_num, new_list_item) => {
+		    objects.push(OrgObject::List(new_list_item));
+		    self.advance_iterator();
+		},
+		Line::Text(_line_num, new_text) => {
+		    objects.push(OrgObject::Text(new_text));
+		    self.advance_iterator();
+		}
+	    }
         }
 
         return OrgObject::Header(header, objects);
-    }
-
-    fn parse_content(&mut self, current_line: &'t str) -> OrgObject<'t> {
-        line::parse_list_item(current_line)
-            .map(|list_item| OrgObject::List(list_item))
-            .unwrap_or(OrgObject::Text(current_line))
     }
 }
