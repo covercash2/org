@@ -18,11 +18,11 @@ pub struct Parser<'t> {
     current_line: Option<RawLine<'t>>,
 }
 
-pub fn parse_org_text<'t, I: Iterator<Item = &'t str>>(
+pub fn parse_org_text<'t, I: IntoIterator<Item = &'t str>>(
     text: &'t str,
     status_labels: I,
 ) -> error::Result<OrgContent<'t>> {
-    Parser::new(text, status_labels).parse()
+    Parser::new(text, status_labels.into_iter()).parse()
 }
 
 impl<'t> Parser<'t> {
@@ -94,7 +94,9 @@ impl<'t> Parser<'t> {
 mod tests {
     use super::*;
 
-    const test_str: &str = "* TODO task header: with_tags :tag:anothertag:
+    const TEST_STATES: [&str; 3] = ["TODO", "STARTED", "DONE"];
+
+    const TEST_STR: &str = "* TODO task header: with_tags :tag:anothertag:
 	:DEADLINE: 
 
 	:PROPERTIES:
@@ -122,5 +124,7 @@ mod tests {
 	10. ten";
 
     #[test]
-    fn 
+    fn parse_test_str() {
+        let content = parse_org_text(&TEST_STR, TEST_STATES.to_vec()).unwrap();
+    }
 }

@@ -21,9 +21,9 @@ fn main() -> error::Result<()> {
         text
     };
 
-    let label_iter = config.status_labels.iter().map(AsRef::as_ref);
+    let labels: Vec<&str> = config.status_labels.iter().map(AsRef::as_ref).collect();
 
-    let content = parser::parse_org_text(&text, label_iter);
+    let content = parser::parse_org_text(&text, labels);
 
     content
         .map(|content| {
