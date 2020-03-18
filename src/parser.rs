@@ -66,27 +66,61 @@ impl<'t> Parser<'t> {
         let mut objects: Vec<OrgObject> = Vec::new();
 
         while let Some((line_num, line)) = self.get_line() {
-
-	    match line::parse_line(line_num, line, &self.states) {
-		Line::Header(_line_num, new_header) => {
+            match line::parse_line(line_num, line, &self.states) {
+                Line::Header(_line_num, new_header) => {
                     if new_header.level() > header.level() {
                         objects.push(self.parse_objects(new_header));
                         self.advance_iterator();
                     } else {
                         return OrgObject::Header(new_header, objects);
                     }
-		},
-		Line::ListItem(_line_num, new_list_item) => {
-		    objects.push(OrgObject::List(new_list_item));
-		    self.advance_iterator();
-		},
-		Line::Text(_line_num, new_text) => {
-		    objects.push(OrgObject::Text(new_text));
-		    self.advance_iterator();
-		}
-	    }
+                }
+                Line::ListItem(_line_num, new_list_item) => {
+                    objects.push(OrgObject::List(new_list_item));
+                    self.advance_iterator();
+                }
+                Line::Text(_line_num, new_text) => {
+                    objects.push(OrgObject::Text(new_text));
+                    self.advance_iterator();
+                }
+            }
         }
 
         return OrgObject::Header(header, objects);
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const test_str: &str = "* TODO task header: with_tags :tag:anothertag:
+	:DEADLINE: 
+
+	:PROPERTIES:
+	:END:
+
+	* STARTED started task
+	* TODO unorodered lists
+	- not necessarily first
+	- maybe not second
+	- doesn't have to be third
+	* plus sign list
+	+ unordered lists
+	+ don't have to start
+	+ with a - like a sane person
+	* STARTED ordered lists
+	1. there
+	2. needs
+	3. to
+	4. be
+	5. ten
+	6. of
+	7. these
+	8. so
+	9. here's
+	10. ten";
+
+    #[test]
+    fn 
 }
