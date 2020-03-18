@@ -27,9 +27,11 @@ fn main() -> error::Result<()> {
 
     content
         .map(|content| {
-            for object in content.objects {
-                println!("{}", object);
-            }
+	    if let Some(objects) = content.objects() {
+		for object in objects {
+		    println!("{}", object);
+		}
+	    }
         })
         .expect("error parsing text");
 

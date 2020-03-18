@@ -42,15 +42,17 @@ impl<'t> Parser<'t> {
 
     pub fn parse(&mut self) -> error::Result<OrgContent<'t>> {
         let root_header = Header::new_root();
+        let root = self.parse_objects(root_header);
 
-        match self.parse_objects(root_header) {
-            OrgObject::Header(_root_header, objects) => Ok(OrgContent {
-                text: self.text,
-                objects,
-            }),
-            _ => Err(OrgError::Unexpected(
+        if !root.is_header() {
+            Err(OrgError::Unexpected(
                 "Parser::parse_objects should return a OrgObject::Header".into(),
-            )),
+            ))
+        } else {
+            Ok(OrgContent {
+                text: self.text,
+                root,
+            })
         }
     }
 

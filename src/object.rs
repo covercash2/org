@@ -3,7 +3,16 @@ use std::{fmt, fmt::Display};
 #[derive(Debug)]
 pub struct OrgContent<'t> {
     pub text: &'t str,
-    pub objects: Vec<OrgObject<'t>>,
+    pub root: OrgObject<'t>,
+}
+
+impl<'t> OrgContent<'t> {
+    pub fn objects(&self) -> Option<&Vec<OrgObject<'t>>> {
+	match &self.root {
+	    OrgObject::Header(_header, objects) => Some(&objects),
+	    _ => None,
+	}
+    }
 }
 
 #[derive(Debug)]
@@ -11,6 +20,15 @@ pub enum OrgObject<'t> {
     Header(Header<'t>, Vec<OrgObject<'t>>),
     List(ListItem<'t>),
     Text(&'t str),
+}
+
+impl<'t> OrgObject<'t> {
+    pub fn is_header(&self) -> bool {
+	match self {
+	    OrgObject::Header(_, _) => true,
+	    _ => false,
+	}
+    }
 }
 
 #[derive(Debug)]
