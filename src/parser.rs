@@ -4,7 +4,7 @@ use std::str::Lines;
 use super::{
     error,
     error::OrgError,
-    object::{Header, ListItem, OrgContent, OrgObject},
+    object::{Bullet, Header, ListItem, OrgContent, OrgObject},
 };
 
 mod line;
@@ -167,7 +167,11 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
 ) -> OrgObject<'t> {
     let mut objects = Vec::new();
 
-    while let Some(line) = cursor.current_line() {
+    let mut bullet: Option<Bullet> = None;
+    let mut list: Option<Vec<ListItem>> = None;
+    let mut text: Option<Vec<&str>> = None;
+
+    while let Some(line) = cursor.advance() {
         match line {
             Line::Header(new_header) => {
                 // recurse and add subheader
@@ -176,8 +180,8 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
                     objects.push(sub_header);
                 }
             }
-            Line::ListItem(list_item) => {}
-            Line::Text(text_line) => {}
+            Line::ListItem(list_item) => list.get_or_insert(Vec::new()).push(list_item),
+            Line::Text(text_line) => text.get_or_insert(Vec::new()).push(text_line),
         }
     }
 
@@ -185,20 +189,6 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
 }
 
 fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> error::Result<Vec<ListItem<'t>>> {
-    let bullet = cursor
-        .current_line()
-        .and_then(|line| {
-            if let Line::ListItem(list_item) = line {
-                Some(list_item.bullet)
-            } else {
-                None
-            }
-        })
-        .ok_or(OrgError::ParseError(
-            cursor.current_line_number(),
-            "unable to parse list item bullet".to_string(),
-        ))?;
-
     return Err(OrgError::Unexpected("not implemented".to_string()));
 }
 

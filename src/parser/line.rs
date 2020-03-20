@@ -1,4 +1,7 @@
-use crate::object::{Header, ListItem};
+use crate::{
+    error,
+    object::{Bullet, Header, ListItem},
+};
 
 const TAG_CHAR: char = ':';
 const HEADER_CHAR: u8 = 42; // * characer code
@@ -17,44 +20,17 @@ pub enum Line<'t> {
 pub fn parse_line<'t>(line: &'t str, possible_states: &[&str]) -> Line<'t> {
     parse_header_line(line, possible_states)
         .map(|header| Line::Header(header))
-        .or(parse_list_item(line).map(|list_item| Line::ListItem(list_item)))
+        .or(parse_list_item(line))
         .unwrap_or(Line::Text(line))
 }
 
-pub fn parse_list_item(line: &str) -> Option<ListItem> {
-    parse_unordered_item(line, &UNORDERED_LIST_BULLETS)
-        .or_else(|| parse_ordered_item(line))
+pub fn parse_list_item<'t>(line: &'t str) -> Option<Line<'t>> {
+    line.trim()
+        .find(' ')
+        .map(|space_index| line.split_at(space_index))
+        .and_then(|(bullet_str, rem)| Bullet::parse(bullet_str).map(|bullet| (bullet, rem.trim())))
         .map(|(bullet, content)| ListItem { bullet, content })
-        .or(None)
-}
-
-fn parse_ordered_item<'t>(line: &'t str) -> Option<(&'t str, &'t str)> {
-    line.find('.')
-        .map(|dot_index| line.split_at(dot_index + 1))
-        .filter(|(bullet, _)| {
-            // check if all digits are numbers between 0-9
-            bullet
-                .chars()
-                .take_while(|&ch| ch != '.')
-                .all(|ch| ch.is_digit(10))
-        })
-        .map(|(bullet, rem)| {
-            // trim '.' and whitespace
-            let text = rem[1..].trim();
-            (bullet, text)
-        })
-}
-
-fn parse_unordered_item<'t>(
-    line: &'t str,
-    possible_bullets: &[&str],
-) -> Option<(&'t str, &'t str)> {
-    possible_bullets
-        .iter()
-        .filter(|&bullet| line.starts_with(bullet))
-        .map(|bullet| line.split_at(bullet.len()))
-        .next()
-        .map(|(bullet, rem)| (bullet, rem.trim()))
+        .map(|list_item| Line::ListItem(list_item))
 }
 
 /// parse status from the front of `text`

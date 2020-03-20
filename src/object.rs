@@ -1,5 +1,7 @@
 use std::{fmt, fmt::Display};
 
+use crate::{error, error::OrgError};
+
 #[derive(Debug)]
 pub struct OrgContent<'t> {
     pub text: &'t str,
@@ -8,10 +10,10 @@ pub struct OrgContent<'t> {
 
 impl<'t> OrgContent<'t> {
     pub fn objects(&self) -> Option<&Vec<OrgObject<'t>>> {
-	match &self.root {
-	    OrgObject::Header(_header, objects) => Some(&objects),
-	    _ => None,
-	}
+        match &self.root {
+            OrgObject::Header(_header, objects) => Some(&objects),
+            _ => None,
+        }
     }
 }
 
@@ -24,10 +26,10 @@ pub enum OrgObject<'t> {
 
 impl<'t> OrgObject<'t> {
     pub fn is_header(&self) -> bool {
-	match self {
-	    OrgObject::Header(_, _) => true,
-	    _ => false,
-	}
+        match self {
+            OrgObject::Header(_, _) => true,
+            _ => false,
+        }
     }
 }
 
@@ -41,8 +43,30 @@ pub struct Header<'t> {
 
 #[derive(Debug)]
 pub struct ListItem<'t> {
-    pub bullet: &'t str,
+    pub bullet: Bullet,
     pub content: &'t str,
+}
+
+#[derive(Debug)]
+pub enum Bullet {
+    Minus,
+    Plus,
+    Numeric(usize),
+}
+
+impl Bullet {
+    pub fn parse(s: &str) -> Option<Bullet> {
+        match s {
+            "-" => Some(Bullet::Minus),
+            "+" => Some(Bullet::Plus),
+            _ => s.split('.').next().and_then(|num_str| {
+                num_str
+                    .parse::<usize>()
+                    .map(|num| Bullet::Numeric(num))
+                    .ok()
+            }),
+        }
+    }
 }
 
 impl<'t> Display for OrgObject<'t> {
@@ -72,43 +96,33 @@ impl<'t> Display for Header<'t> {
         let tag_string = self.tags.as_ref().map(|tags| tags.join(":"));
 
         match (self.status, tag_string) {
-            (Some(status), None) => {
-		write!(
-		    f,
-		    "{} {} {}",
-		    level_indicator, status, self.title
-		)
-	    },
-	    (None, Some(tag_string)) => {
-		write!(
-		    f,
-		    "{} {} {}",
-		    level_indicator, self.title, tag_string,
-		)
-	    }
-	    (Some(status), Some(tag_string)) => {
-		write!(
-		    f,
-		    "{} {} {} :{}:",
-		    level_indicator, status, self.title, tag_string,
-		)
-	    }
+            (Some(status), None) => write!(f, "{} {} {}", level_indicator, status, self.title),
+            (None, Some(tag_string)) => {
+                write!(f, "{} {} {}", level_indicator, self.title, tag_string,)
+            }
+            (Some(status), Some(tag_string)) => write!(
+                f,
+                "{} {} {} :{}:",
+                level_indicator, status, self.title, tag_string,
+            ),
             (None, None) => write!(f, "{} {}", level_indicator, self.title),
         }
     }
 }
 
 impl<'t> Header<'t> {
-
     pub fn new(
-	level: usize,
-	title: &'t str,
-	status: Option<&'t str>,
-	tags: Option<Vec<&'t str>>,
+        level: usize,
+        title: &'t str,
+        status: Option<&'t str>,
+        tags: Option<Vec<&'t str>>,
     ) -> Header<'t> {
-	Header {
-	    level, title, status, tags,
-	}
+        Header {
+            level,
+            title,
+            status,
+            tags,
+        }
     }
 
     pub fn new_root() -> Header<'t> {
@@ -146,5 +160,15 @@ impl<'t> Header<'t> {
 impl<'t> Display for ListItem<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.bullet, self.content)
+    }
+}
+
+impl Display for Bullet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Bullet::Minus => write!(f, "-"),
+            Bullet::Plus => write!(f, "+"),
+            Bullet::Numeric(i) => write!(f, "{}.", i),
+        }
     }
 }
