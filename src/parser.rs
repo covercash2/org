@@ -79,7 +79,11 @@ impl<'t> Parser<'t> {
                     }
                 }
                 Line::ListItem(new_list_item) => {
-                    objects.push(OrgObject::List(new_list_item));
+                    // TODO this method will be deprecated
+                    // but this method will create a vec for
+                    // every list item and is inefficient
+                    // and plain ole wrong.
+                    objects.push(OrgObject::List(vec![new_list_item]));
                     self.advance_iterator();
                 }
                 Line::Text(new_text) => {
@@ -167,33 +171,41 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
 ) -> OrgObject<'t> {
     let mut objects = Vec::new();
 
-    let mut bullet: Option<Bullet> = None;
-    let mut list: Option<Vec<ListItem>> = None;
-    let mut text: Option<Vec<&str>> = None;
-
-    while let Some(line) = cursor.advance() {
+    while let Some(line) = cursor.current_line() {
         match line {
-            Line::Header(new_header) => {
-                // recurse and add subheader
+            Line::Header(_) => {
                 if let Some(Line::Header(new_header)) = cursor.advance() {
+                    // recurse and add subheader
                     let sub_header = parse_header_objects(new_header, cursor, possible_states);
                     objects.push(sub_header);
                 }
             }
-            Line::ListItem(list_item) => list.get_or_insert(Vec::new()).push(list_item),
-            Line::Text(text_line) => text.get_or_insert(Vec::new()).push(text_line),
+            Line::ListItem(_) => {
+                objects.push(parse_list(cursor).into());
+            }
+            Line::Text(text_line) => objects.push(OrgObject::Text(text_line)),
         }
     }
 
     return OrgObject::Header(header, Vec::new());
 }
 
-fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> error::Result<Vec<ListItem<'t>>> {
-    return Err(OrgError::Unexpected("not implemented".to_string()));
+fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
+    let mut list_items = Vec::new();
+    let mut bullet_opt: Option<Bullet> = None;
+    while let Some(Line::ListItem(list_item)) = cursor.advance() {
+        println!("list item: {}", list_item);
+        let bullet = bullet_opt.get_or_insert(list_item.bullet);
+        if list_item.bullet == *bullet {
+            list_items.push(list_item)
+        }
+    }
+    return list_items;
 }
 
 fn str_to_line<'t>(raw_line: RawLine<'t>, possible_states: &[&str]) -> (usize, Line<'t>) {
-    (raw_line.0, line::parse_line(raw_line.1, possible_states))
+    let (line_num, line) = raw_line;
+    (line_num, line::parse_line(line, possible_states))
 }
 
 #[cfg(test)]
@@ -229,23 +241,93 @@ mod tests {
 	9. here's
 	10. ten";
 
-    const GOOD_LIST: &str = "- a good list
-	- not necessarily in order
-	- a third item";
+    const GOOD_LIST_0: &str = "- a good list
+- not necessarily in order
+- a third item";
+    const GOOD_LIST_0_LEN: usize = 3;
+    const GOOD_LIST_0_BULLET: Bullet = Bullet::Minus;
+
+    const GOOD_LIST_1: &str = "+ another good list
++ featuring the plus sign
++ also, now with over 3 items
++ why have more than 1 indicator?
++ who knows";
+    const GOOD_LIST_1_LEN: usize = 5;
+    const GOOD_LIST_1_BULLET: Bullet = Bullet::Plus;
 
     #[test]
     fn parse_test_str() {
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
     }
 
+    fn check_list<'t>(
+        list: &Vec<ListItem<'t>>,
+        expected_len: usize,
+        expected_bullet: Bullet,
+    ) -> error::Result<()> {
+        if list.len() != expected_len {
+            return Err(OrgError::Unexpected(format!(
+                "incorrect list length. expected: {}, found: {}",
+                expected_len,
+                list.len()
+            )));
+        }
+
+        check_bullets(list, expected_bullet)
+    }
+
+    fn check_bullets<'t>(list: &Vec<ListItem<'t>>, expected_bullet: Bullet) -> error::Result<()> {
+        match expected_bullet {
+            Bullet::Numeric(_) => {
+                match list
+                    .iter()
+                    .enumerate()
+                    .find(|(num, item)| match item.bullet {
+                        Bullet::Numeric(i) => *num != (i + 1),
+                        _ => false,
+                    }) {
+                    Some((bad_bullet_index, bad_bullet)) => Err(OrgError::ParseError(
+                        None,
+                        format!(
+                            "expected numeric bullet: {}, found: {}",
+                            bad_bullet_index + 1,
+                            bad_bullet,
+                        ),
+                    )),
+                    _ => Ok(()),
+                }
+            }
+            _ => match list.iter().find(|item| item.bullet != expected_bullet) {
+                Some(item) => Err(OrgError::ParseError(
+                    None,
+                    format!(
+                        "bad bullet was parsed: {}, expected: {}",
+                        item.bullet, expected_bullet,
+                    ),
+                )),
+                None => Ok(()),
+            },
+        }
+    }
+
+    fn get_cursor<'t>(s: &'t str) -> error::Result<impl Cursor<'t>> {
+        OrgCursor::new(s, |raw_line| str_to_line(raw_line, &TEST_STATES))
+    }
+
     #[test]
     fn parse_lists() {
-        let mut good_list_cursor =
-            OrgCursor::new(GOOD_LIST, |raw_line| str_to_line(raw_line, &TEST_STATES)).unwrap();
-
-        match parse_list(&mut good_list_cursor) {
-            Err(e) => panic!("{}", e),
-            Ok(_vec_list_item) => {}
+        for line in GOOD_LIST_0.lines() {
+            println!("line: {}", line);
         }
+
+        let mut cursor = get_cursor(GOOD_LIST_0).unwrap();
+
+        let good_list_0 = parse_list(&mut cursor);
+        check_list(&good_list_0, GOOD_LIST_0_LEN, GOOD_LIST_0_BULLET).unwrap();
+
+        let mut cursor = get_cursor(GOOD_LIST_1).unwrap();
+
+        let good_list_1 = parse_list(&mut cursor);
+        check_list(&good_list_1, GOOD_LIST_1_LEN, GOOD_LIST_1_BULLET).unwrap();
     }
 }

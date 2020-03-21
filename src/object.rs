@@ -20,7 +20,7 @@ impl<'t> OrgContent<'t> {
 #[derive(Debug)]
 pub enum OrgObject<'t> {
     Header(Header<'t>, Vec<OrgObject<'t>>),
-    List(ListItem<'t>),
+    List(Vec<ListItem<'t>>),
     Text(&'t str),
 }
 
@@ -30,6 +30,12 @@ impl<'t> OrgObject<'t> {
             OrgObject::Header(_, _) => true,
             _ => false,
         }
+    }
+}
+
+impl<'t> From<Vec<ListItem<'t>>> for OrgObject<'t> {
+    fn from(list_items: Vec<ListItem<'t>>) -> OrgObject<'t> {
+        OrgObject::List(list_items)
     }
 }
 
@@ -47,7 +53,7 @@ pub struct ListItem<'t> {
     pub content: &'t str,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Bullet {
     Minus,
     Plus,
@@ -82,8 +88,10 @@ impl<'t> Display for OrgObject<'t> {
             OrgObject::Text(string) => {
                 write!(f, "{}", string)?;
             }
-            OrgObject::List(list_item) => {
-                write!(f, "{}", list_item)?;
+            OrgObject::List(list) => {
+                for list_item in list {
+                    write!(f, "{}", list_item)?;
+                }
             }
         }
         return Ok(());

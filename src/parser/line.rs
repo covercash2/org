@@ -15,6 +15,22 @@ pub enum Line<'t> {
     ListItem(ListItem<'t>),
 }
 
+impl<'t> Line<'t> {
+    fn is_list_item(&self) -> bool {
+        match self {
+            Line::ListItem(_) => true,
+            _ => false,
+        }
+    }
+
+    fn is_header(&self) -> bool {
+        match self {
+            Line::Header(_) => true,
+            _ => false,
+        }
+    }
+}
+
 // TODO only parse_line should be pub
 
 pub fn parse_line<'t>(line: &'t str, possible_states: &[&str]) -> Line<'t> {
