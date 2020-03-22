@@ -9,6 +9,7 @@ const HEADER_CHAR: u8 = 42; // * characer code
                             // or not. that seems stupid
 const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 
+#[derive(Debug)]
 pub enum Line<'t> {
     Text(&'t str),
     Header(Header<'t>),

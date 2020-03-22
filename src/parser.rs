@@ -12,89 +12,14 @@ use line::Line;
 
 type RawLine<'t> = (usize, &'t str);
 
-pub struct Parser<'t> {
-    text: &'t str,
-    states: Vec<&'t str>,
-    iterator: std::iter::Enumerate<Lines<'t>>,
-    current_line: Option<RawLine<'t>>,
-}
-
 pub fn parse_org_text<'t, I: IntoIterator<Item = &'t str>>(
     text: &'t str,
     status_labels: I,
 ) -> error::Result<OrgContent<'t>> {
-    Parser::new(text, status_labels.into_iter()).parse()
-}
-
-impl<'t> Parser<'t> {
-    pub fn new<I: Iterator<Item = &'t str>>(text: &'t str, possible_states: I) -> Parser<'t> {
-        let mut iterator = text.lines().enumerate();
-        let current_line = iterator.next().expect("text is empty");
-
-        let states: Vec<&str> = possible_states.collect();
-
-        Parser {
-            text,
-            states,
-            iterator,
-            current_line: Some(current_line),
-        }
-    }
-
-    pub fn parse(&mut self) -> error::Result<OrgContent<'t>> {
-        let root_header = Header::new_root();
-        let root = self.parse_objects(root_header);
-
-        if !root.is_header() {
-            Err(OrgError::Unexpected(
-                "Parser::parse_objects should return a OrgObject::Header".into(),
-            ))
-        } else {
-            Ok(OrgContent {
-                text: self.text,
-                root,
-            })
-        }
-    }
-
-    fn get_line(&self) -> Option<RawLine<'t>> {
-        self.current_line
-    }
-
-    fn advance_iterator(&mut self) {
-        self.current_line = self.iterator.next();
-    }
-
-    fn parse_objects(&mut self, header: Header<'t>) -> OrgObject<'t> {
-        let mut objects: Vec<OrgObject> = Vec::new();
-
-        while let Some((_line_num, line)) = self.get_line() {
-            match line::parse_line(line, &self.states) {
-                Line::Header(new_header) => {
-                    if new_header.level() > header.level() {
-                        objects.push(self.parse_objects(new_header));
-                        self.advance_iterator();
-                    } else {
-                        return OrgObject::Header(new_header, objects);
-                    }
-                }
-                Line::ListItem(new_list_item) => {
-                    // TODO this method will be deprecated
-                    // but this method will create a vec for
-                    // every list item and is inefficient
-                    // and plain ole wrong.
-                    objects.push(OrgObject::List(vec![new_list_item]));
-                    self.advance_iterator();
-                }
-                Line::Text(new_text) => {
-                    objects.push(OrgObject::Text(new_text));
-                    self.advance_iterator();
-                }
-            }
-        }
-
-        return OrgObject::Header(header, objects);
-    }
+    let labels: Vec<&str> = status_labels.into_iter().collect();
+    let mut cursor = OrgCursor::new(text, |raw_line| raw_line_to_line(raw_line, &labels))?;
+    let root = parse_header_objects(Header::new_root(), &mut cursor, &labels);
+    Ok(OrgContent { text, root })
 }
 
 trait Cursor<'t> {
@@ -172,18 +97,26 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
     let mut objects = Vec::new();
 
     while let Some(line) = cursor.current_line() {
+        println!("{:?}", line);
         match line {
             Line::Header(_) => {
                 if let Some(Line::Header(new_header)) = cursor.advance() {
-                    // recurse and add subheader
-                    let sub_header = parse_header_objects(new_header, cursor, possible_states);
-                    objects.push(sub_header);
+                    // if `new_header` is a subheader
+                    if new_header.level() > header.level() {
+                        // recurse and add subheader
+                        let sub_header = parse_header_objects(new_header, cursor, possible_states);
+                        objects.push(sub_header);
+                    } else {
+                        break;
+                    }
                 }
             }
             Line::ListItem(_) => {
                 objects.push(parse_list(cursor).into());
             }
-            Line::Text(text_line) => objects.push(OrgObject::Text(text_line)),
+            Line::Text(_) => {
+                objects.push(parse_text(cursor));
+            }
         }
     }
 
@@ -203,7 +136,16 @@ fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
     return list_items;
 }
 
-fn str_to_line<'t>(raw_line: RawLine<'t>, possible_states: &[&str]) -> (usize, Line<'t>) {
+fn parse_text<'t, C: Cursor<'t>>(cursor: &mut C) -> OrgObject<'t> {
+    let mut text_lines = Vec::new();
+    while let Some(Line::Text(text_line)) = cursor.advance() {
+        println!("text line: {}", text_line);
+        text_lines.push(text_line);
+    }
+    OrgObject::Text(text_lines)
+}
+
+fn raw_line_to_line<'t>(raw_line: RawLine<'t>, possible_states: &[&str]) -> (usize, Line<'t>) {
     let (line_num, line) = raw_line;
     (line_num, line::parse_line(line, possible_states))
 }
@@ -215,31 +157,31 @@ mod tests {
     const TEST_STATES: [&str; 3] = ["TODO", "STARTED", "DONE"];
 
     const TEST_TEXT: &str = "* TODO task header: with_tags :tag:anothertag:
-	:DEADLINE: 
+:DEADLINE: 
 
-	:PROPERTIES:
-	:END:
+:PROPERTIES:
+:END:
 
-	* STARTED started task
-	* TODO unorodered lists
-	- not necessarily first
-	- maybe not second
-	- doesn't have to be third
-	* plus sign list
-	+ unordered lists
-	+ don't have to start
-	+ with a - like a sane person
-	* STARTED ordered lists
-	1. there
-	2. needs
-	3. to
-	4. be
-	5. ten
-	6. of
-	7. these
-	8. so
-	9. here's
-	10. ten";
+* STARTED started task
+* TODO unorodered lists
+- not necessarily first
+- maybe not second
+- doesn't have to be third
+* plus sign list
++ unordered lists
++ don't have to start
++ with a - like a sane person
+* STARTED ordered lists
+1. there
+2. needs
+3. to
+4. be
+5. ten
+6. of
+7. these
+8. so
+9. here's
+10. ten";
 
     const GOOD_LIST_0: &str = "- a good list
 - not necessarily in order
@@ -258,6 +200,17 @@ mod tests {
     #[test]
     fn parse_test_str() {
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
+
+        let headlines = content
+            .root
+            .sub_objects()
+            .unwrap()
+            .iter()
+            .filter(|object| object.is_headline());
+        let expected_headline_num = 5;
+        assert!(headlines.count() == expected_headline_num);
+
+        println!("{}", content.root);
     }
 
     fn check_list<'t>(
@@ -311,7 +264,7 @@ mod tests {
     }
 
     fn get_cursor<'t>(s: &'t str) -> error::Result<impl Cursor<'t>> {
-        OrgCursor::new(s, |raw_line| str_to_line(raw_line, &TEST_STATES))
+        OrgCursor::new(s, |raw_line| raw_line_to_line(raw_line, &TEST_STATES))
     }
 
     #[test]

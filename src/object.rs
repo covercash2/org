@@ -21,14 +21,21 @@ impl<'t> OrgContent<'t> {
 pub enum OrgObject<'t> {
     Header(Header<'t>, Vec<OrgObject<'t>>),
     List(Vec<ListItem<'t>>),
-    Text(&'t str),
+    Text(Vec<&'t str>),
 }
 
 impl<'t> OrgObject<'t> {
-    pub fn is_header(&self) -> bool {
+    pub fn is_headline(&self) -> bool {
         match self {
             OrgObject::Header(_, _) => true,
             _ => false,
+        }
+    }
+
+    pub fn sub_objects(&self) -> Option<&Vec<OrgObject<'t>>> {
+        match self {
+            OrgObject::Header(_, sub_objects) => Some(sub_objects),
+            _ => None,
         }
     }
 }
@@ -85,8 +92,10 @@ impl<'t> Display for OrgObject<'t> {
                     write!(f, "{}", object)?;
                 }
             }
-            OrgObject::Text(string) => {
-                write!(f, "{}", string)?;
+            OrgObject::Text(lines) => {
+                for line in lines {
+                    write!(f, "{}\n", line)?;
+                }
             }
             OrgObject::List(list) => {
                 for list_item in list {
