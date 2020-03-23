@@ -15,6 +15,10 @@ impl OrgError {
     pub fn parse_error(line_num: usize, msg: &'static str) -> OrgError {
         OrgError::ParseError(Some(line_num), msg.to_string())
     }
+
+    pub fn unexpected(msg: &str) -> Self {
+        OrgError::Unexpected(msg.to_string())
+    }
 }
 
 impl From<io::Error> for OrgError {

@@ -24,6 +24,31 @@ pub enum OrgObject<'t> {
     Text(Vec<&'t str>),
 }
 
+struct HeadlineObject<'t> {
+    pub headline: &'t Header<'t>,
+    pub subobjects: &'t Vec<OrgObject<'t>>,
+}
+
+impl<'t> HeadlineObject<'t> {
+    fn from_object(object: &'t OrgObject<'t>) -> Option<Self> {
+        match object {
+            OrgObject::Header(headline, subobjects) => Some(HeadlineObject {
+                headline,
+                subobjects,
+            }),
+            _ => None,
+        }
+    }
+
+    fn headlines(&self) -> impl Iterator<Item = &Header> {
+        self.subobjects
+            .iter()
+            .filter_map(|subobject| HeadlineObject::from_object(subobject))
+            .map(|headline_object| headline_object.headline)
+        //.map(|headline_object| headline_object.headlines())
+    }
+}
+
 impl<'t> OrgObject<'t> {
     pub fn is_headline(&self) -> bool {
         match self {
@@ -32,11 +57,8 @@ impl<'t> OrgObject<'t> {
         }
     }
 
-    pub fn sub_objects(&self) -> Option<&Vec<OrgObject<'t>>> {
-        match self {
-            OrgObject::Header(_, sub_objects) => Some(sub_objects),
-            _ => None,
-        }
+    pub fn subobjects(&self) -> Option<&Vec<OrgObject<'_>>> {
+        HeadlineObject::from_object(self).map(|headline_object| headline_object.subobjects)
     }
 }
 

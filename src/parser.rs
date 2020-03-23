@@ -18,7 +18,7 @@ pub fn parse_org_text<'t, I: IntoIterator<Item = &'t str>>(
 ) -> error::Result<OrgContent<'t>> {
     let labels: Vec<&str> = status_labels.into_iter().collect();
     let mut cursor = OrgCursor::new(text, |raw_line| raw_line_to_line(raw_line, &labels))?;
-    let root = parse_header_objects(Header::new_root(), &mut cursor, &labels);
+    let root: OrgObject = parse_header_objects(Header::new_root(), &mut cursor, &labels)?;
     Ok(OrgContent { text, root })
 }
 
@@ -93,22 +93,34 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
     header: Header<'t>,
     cursor: &mut C,
     possible_states: &[&str],
-) -> OrgObject<'t> {
-    let mut objects = Vec::new();
+) -> error::Result<OrgObject<'t>> {
+    let mut objects: Vec<OrgObject<'t>> = Vec::new();
+
+    println!("parsing header objects for headline: {:?}", header);
 
     while let Some(line) = cursor.current_line() {
-        println!("{:?}", line);
+        println!("parsing line: {:?}", line);
         match line {
-            Line::Header(_) => {
-                if let Some(Line::Header(new_header)) = cursor.advance() {
-                    // if `new_header` is a subheader
-                    if new_header.level() > header.level() {
-                        // recurse and add subheader
-                        let sub_header = parse_header_objects(new_header, cursor, possible_states);
-                        objects.push(sub_header);
-                    } else {
-                        break;
-                    }
+            Line::Header(new_headline) => {
+                println!("new header: {}", new_headline);
+
+                if new_headline.level() > header.level() {
+                    let new_header = cursor
+                        .advance()
+                        .and_then(|line| match line {
+                            Line::Header(headline) => Some(headline),
+                            _ => None,
+                        })
+                        .ok_or(OrgError::ParseError(
+                            cursor.current_line_number(),
+                            "cursor returned a bad value".to_string(),
+                        ))?;
+
+                    // recurse and add subheader
+                    let sub_header = parse_header_objects(new_header, cursor, possible_states)?;
+                    objects.push(sub_header);
+                } else {
+                    break;
                 }
             }
             Line::ListItem(_) => {
@@ -120,14 +132,18 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
         }
     }
 
-    return OrgObject::Header(header, Vec::new());
+    println!("level {} subobjects", header.level());
+    for object in &objects {
+        println!("{:?}", object);
+    }
+
+    return Ok(OrgObject::Header(header, objects));
 }
 
 fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
     let mut list_items = Vec::new();
     let mut bullet_opt: Option<Bullet> = None;
     while let Some(Line::ListItem(list_item)) = cursor.advance() {
-        println!("list item: {}", list_item);
         let bullet = bullet_opt.get_or_insert(list_item.bullet);
         if list_item.bullet == *bullet {
             list_items.push(list_item)
@@ -139,7 +155,6 @@ fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
 fn parse_text<'t, C: Cursor<'t>>(cursor: &mut C) -> OrgObject<'t> {
     let mut text_lines = Vec::new();
     while let Some(Line::Text(text_line)) = cursor.advance() {
-        println!("text line: {}", text_line);
         text_lines.push(text_line);
     }
     OrgObject::Text(text_lines)
@@ -197,20 +212,37 @@ mod tests {
     const GOOD_LIST_1_LEN: usize = 5;
     const GOOD_LIST_1_BULLET: Bullet = Bullet::Plus;
 
+    fn check_headline_count<'t>(
+        content: &OrgContent<'t>,
+        expected_headline_num: usize,
+    ) -> error::Result<()> {
+        content
+            .root
+            .subobjects()
+            .ok_or(OrgError::unexpected("root has no subobjects"))
+            .map(|object_vec| {
+                object_vec
+                    .iter()
+                    .filter(|object| object.is_headline())
+                    .count()
+            })
+            .and_then(|headline_num| {
+                if headline_num != expected_headline_num {
+                    Err(OrgError::Unexpected(format!(
+                        "found {} headlines, instead of the expected {}",
+                        headline_num, expected_headline_num,
+                    )))
+                } else {
+                    Ok(())
+                }
+            })
+    }
+
     #[test]
     fn parse_test_str() {
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
 
-        let headlines = content
-            .root
-            .sub_objects()
-            .unwrap()
-            .iter()
-            .filter(|object| object.is_headline());
-        let expected_headline_num = 5;
-        assert!(headlines.count() == expected_headline_num);
-
-        println!("{}", content.root);
+        check_headline_count(&content, 5).unwrap();
     }
 
     fn check_list<'t>(
