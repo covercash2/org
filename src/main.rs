@@ -5,6 +5,7 @@ use ncurses::*;
 use std::{fs::File, io::prelude::*, io::BufReader};
 
 mod config;
+mod headline;
 pub mod object;
 pub mod parser;
 pub mod error;

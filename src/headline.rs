@@ -8,16 +8,33 @@ pub struct HeadlineGroup<'t> {
     subheaders: Option<Vec<Headline<'t>>>,
 }
 
+#[derive(Debug)]
 pub struct Headline<'t> {
-    pub level: usize,
-    pub title: &'t str,
-    pub status: Option<&'t str>,
-    pub tags: Option<Vec<&'t str>>,
+    level: usize,
+    title: &'t str,
+    status: Option<&'t str>,
+    tags: Option<Vec<&'t str>>,
 }
 
 impl<'t> Headline<'t> {
+    pub fn new_root() -> Self {
+        Headline {
+            level: 0,
+            title: "root",
+            status: None,
+            tags: None,
+        }
+    }
+
     pub fn parse(line: &'t str, possible_states: &[&str]) -> Option<Headline<'t>> {
         parse_headline(line, possible_states)
+    }
+
+    pub fn level(&self) -> usize {
+        self.level
+    }
+    pub fn title(&self) -> &'t str {
+        self.title
     }
 }
 
@@ -44,14 +61,14 @@ fn parse_headline<'t>(line: &'t str, possible_states: &[&str]) -> Option<Headlin
 
     let title = text;
 
-    let header = Headline {
+    let headline = Headline {
         level,
         title,
         status,
         tags,
     };
 
-    return Some(header);
+    return Some(headline);
 }
 
 /// parse status from the front of `text`

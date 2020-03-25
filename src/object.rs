@@ -1,6 +1,6 @@
 use std::{fmt, fmt::Display};
 
-use crate::{error, error::OrgError};
+use crate::{error, error::OrgError, headline::Headline};
 
 #[derive(Debug)]
 pub struct OrgContent<'t> {
@@ -11,7 +11,7 @@ pub struct OrgContent<'t> {
 impl<'t> OrgContent<'t> {
     pub fn objects(&self) -> Option<&Vec<OrgObject<'t>>> {
         match &self.root {
-            OrgObject::Header(_header, objects) => Some(&objects),
+            OrgObject::Headline(_headline, objects) => Some(&objects),
             _ => None,
         }
     }
@@ -19,20 +19,20 @@ impl<'t> OrgContent<'t> {
 
 #[derive(Debug)]
 pub enum OrgObject<'t> {
-    Header(Header<'t>, Vec<OrgObject<'t>>),
+    Headline(Headline<'t>, Vec<OrgObject<'t>>),
     List(Vec<ListItem<'t>>),
     Text(Vec<&'t str>),
 }
 
 struct HeadlineObject<'t> {
-    pub headline: &'t Header<'t>,
+    pub headline: &'t Headline<'t>,
     pub subobjects: &'t Vec<OrgObject<'t>>,
 }
 
 impl<'t> HeadlineObject<'t> {
     fn from_object(object: &'t OrgObject<'t>) -> Option<Self> {
         match object {
-            OrgObject::Header(headline, subobjects) => Some(HeadlineObject {
+            OrgObject::Headline(headline, subobjects) => Some(HeadlineObject {
                 headline,
                 subobjects,
             }),
@@ -40,19 +40,17 @@ impl<'t> HeadlineObject<'t> {
         }
     }
 
-    fn headlines(&self) -> impl Iterator<Item = &Header> {
+    fn headlines(&self) -> impl Iterator<Item = HeadlineObject> {
         self.subobjects
             .iter()
             .filter_map(|subobject| HeadlineObject::from_object(subobject))
-            .map(|headline_object| headline_object.headline)
-        //.map(|headline_object| headline_object.headlines())
     }
 }
 
 impl<'t> OrgObject<'t> {
     pub fn is_headline(&self) -> bool {
         match self {
-            OrgObject::Header(_, _) => true,
+            OrgObject::Headline(_, _) => true,
             _ => false,
         }
     }
@@ -66,14 +64,6 @@ impl<'t> From<Vec<ListItem<'t>>> for OrgObject<'t> {
     fn from(list_items: Vec<ListItem<'t>>) -> OrgObject<'t> {
         OrgObject::List(list_items)
     }
-}
-
-#[derive(Debug)]
-pub struct Header<'t> {
-    level: usize,
-    title: &'t str,
-    status: Option<&'t str>,
-    tags: Option<Vec<&'t str>>,
 }
 
 #[derive(Debug)]
@@ -107,8 +97,8 @@ impl Bullet {
 impl<'t> Display for OrgObject<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OrgObject::Header(header, objects) => {
-                write!(f, "{}", header)?;
+            OrgObject::Headline(headline, objects) => {
+                write!(f, "{}", headline)?;
 
                 for object in objects {
                     write!(f, "{}", object)?;
@@ -126,73 +116,6 @@ impl<'t> Display for OrgObject<'t> {
             }
         }
         return Ok(());
-    }
-}
-
-impl<'t> Display for Header<'t> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let level_indicator = "*".repeat(self.level);
-        let tag_string = self.tags.as_ref().map(|tags| tags.join(":"));
-
-        match (self.status, tag_string) {
-            (Some(status), None) => write!(f, "{} {} {}", level_indicator, status, self.title),
-            (None, Some(tag_string)) => {
-                write!(f, "{} {} {}", level_indicator, self.title, tag_string,)
-            }
-            (Some(status), Some(tag_string)) => write!(
-                f,
-                "{} {} {} :{}:",
-                level_indicator, status, self.title, tag_string,
-            ),
-            (None, None) => write!(f, "{} {}", level_indicator, self.title),
-        }
-    }
-}
-
-impl<'t> Header<'t> {
-    pub fn new(
-        level: usize,
-        title: &'t str,
-        status: Option<&'t str>,
-        tags: Option<Vec<&'t str>>,
-    ) -> Header<'t> {
-        Header {
-            level,
-            title,
-            status,
-            tags,
-        }
-    }
-
-    pub fn new_root() -> Header<'t> {
-        Header {
-            level: 0,
-            title: "root",
-            status: None,
-            tags: None,
-        }
-    }
-
-    pub fn simple_header(level: usize, title: &'t str) -> Header<'t> {
-        Header {
-            level,
-            title,
-            status: None,
-            tags: None,
-        }
-    }
-
-    pub fn todo(level: usize, status: &'t str, title: &'t str) -> Header<'t> {
-        Header {
-            level,
-            title,
-            status: Some(status),
-            tags: None,
-        }
-    }
-
-    pub fn level(&self) -> usize {
-        self.level
     }
 }
 

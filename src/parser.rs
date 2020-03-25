@@ -4,7 +4,8 @@ use std::str::Lines;
 use super::{
     error,
     error::OrgError,
-    object::{Bullet, Header, ListItem, OrgContent, OrgObject},
+    headline::Headline,
+    object::{Bullet, ListItem, OrgContent, OrgObject},
 };
 
 mod line;
@@ -18,7 +19,7 @@ pub fn parse_org_text<'t, I: IntoIterator<Item = &'t str>>(
 ) -> error::Result<OrgContent<'t>> {
     let labels: Vec<&str> = status_labels.into_iter().collect();
     let mut cursor = OrgCursor::new(text, |raw_line| raw_line_to_line(raw_line, &labels))?;
-    let root: OrgObject = parse_header_objects(Header::new_root(), &mut cursor, &labels)?;
+    let root: OrgObject = parse_headline_objects(Headline::new_root(), &mut cursor, &labels)?;
     Ok(OrgContent { text, root })
 }
 
@@ -89,8 +90,8 @@ where
     }
 }
 
-fn parse_header_objects<'t, C: Cursor<'t>>(
-    header: Header<'t>,
+fn parse_headline_objects<'t, C: Cursor<'t>>(
+    header: Headline<'t>,
     cursor: &mut C,
     possible_states: &[&str],
 ) -> error::Result<OrgObject<'t>> {
@@ -117,7 +118,7 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
                         ))?;
 
                     // recurse and add subheader
-                    let sub_header = parse_header_objects(new_header, cursor, possible_states)?;
+                    let sub_header = parse_headline_objects(new_header, cursor, possible_states)?;
                     objects.push(sub_header);
                 } else {
                     break;
@@ -137,7 +138,7 @@ fn parse_header_objects<'t, C: Cursor<'t>>(
         println!("{:?}", object);
     }
 
-    return Ok(OrgObject::Header(header, objects));
+    return Ok(OrgObject::Headline(header, objects));
 }
 
 fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
