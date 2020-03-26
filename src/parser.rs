@@ -97,14 +97,9 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
 ) -> error::Result<OrgObject<'t>> {
     let mut objects: Vec<OrgObject<'t>> = Vec::new();
 
-    println!("parsing header objects for headline: {:?}", header);
-
     while let Some(line) = cursor.current_line() {
-        println!("parsing line: {:?}", line);
         match line {
             Line::Header(new_headline) => {
-                println!("new header: {}", new_headline);
-
                 if new_headline.level() > header.level() {
                     let new_header = cursor
                         .advance()
@@ -131,11 +126,6 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
                 objects.push(parse_text(cursor));
             }
         }
-    }
-
-    println!("level {} subobjects", header.level());
-    for object in &objects {
-        println!("{:?}", object);
     }
 
     return Ok(OrgObject::Headline(header, objects));

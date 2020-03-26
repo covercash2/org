@@ -1,6 +1,6 @@
 use std::{fmt, fmt::Display};
 
-use crate::object::OrgObject;
+use crate::object::{OrgContent, OrgObject};
 
 pub struct HeadlineGroup<'t> {
     headline: Headline<'t>,
@@ -122,5 +122,27 @@ impl<'t> Display for Headline<'t> {
             ),
             (None, None) => write!(f, "{} {}", level_indicator, self.title),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const test_states: [&str; 3] = ["TODO", "STARTED", "DONE"];
+
+    const good_headlines: [&str; 3] = [
+        "* a good headline",
+        "* TODO a good headline with a todo",
+        "** a second level headline",
+    ];
+
+    #[test]
+    fn test_parsing() {
+        assert!(good_headlines.iter().all(|headline_str| Headline::parse(
+            headline_str,
+            &test_states
+        )
+        .is_some()))
     }
 }
