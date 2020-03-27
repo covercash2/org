@@ -9,9 +9,8 @@ pub struct Document<'t> {
 }
 
 impl<'t> Document<'t> {
-    pub fn headlines(&self) -> impl Iterator<Item = &'t Headline<'t>> {
-        //HeadlineGroup::from_object(&self.root).map(|headline_object| headline_object.headlines())
-        iter::empty()
+    pub fn headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> {
+        self.root.all_sub_headlines()
     }
 }
 
@@ -53,7 +52,11 @@ mod tests {
             sub_headlines.len()
         );
 
-        let headlines: Vec<&Headline<'_>> = content.headlines().collect();
+        let headlines: Vec<&HeadlineGroup<'_>> = content.headlines().collect();
+
+        headlines.iter().for_each(|headline| {
+            println!("{}", headline);
+        });
 
         assert!(
             headlines.len() == 12,

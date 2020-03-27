@@ -29,6 +29,13 @@ impl<'t> HeadlineGroup<'t> {
     }
 }
 
+struct Headlines<'t, I>
+where
+    I: Iterator<Item = &'t HeadlineGroup<'t>>,
+{
+    iterator: I,
+}
+
 #[derive(Debug)]
 pub struct Headline<'t> {
     level: usize,
