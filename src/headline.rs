@@ -1,11 +1,21 @@
 use std::{fmt, fmt::Display};
 
-use crate::object::{OrgContent, OrgObject};
+use crate::content::Content;
+use crate::object::Document;
 
+#[derive(Debug)]
 pub struct HeadlineGroup<'t> {
-    headline: Headline<'t>,
-    objects: Option<Vec<OrgObject<'t>>>,
-    subheaders: Option<Vec<Headline<'t>>>,
+    pub headline: Headline<'t>,
+    pub content: Option<Vec<Content<'t>>>,
+    pub sub_headlines: Option<Vec<HeadlineGroup<'t>>>,
+}
+
+impl<'t> HeadlineGroup<'t> {
+    pub fn sub_headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> {
+        self.sub_headlines
+            .iter()
+            .flat_map(|sub_headlines| sub_headlines.iter())
+    }
 }
 
 #[derive(Debug)]
@@ -122,6 +132,27 @@ impl<'t> Display for Headline<'t> {
             ),
             (None, None) => write!(f, "{} {}", level_indicator, self.title),
         }
+    }
+}
+
+impl<'t> Display for HeadlineGroup<'t> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.headline)?;
+
+        match &self.content {
+            Some(content) => {
+                for object in content {
+                    write!(f, "{}", object)?;
+                }
+            }
+            _ => {}
+        }
+
+        for headline in self.sub_headlines() {
+            write!(f, "{}", headline)?;
+        }
+
+        Ok(())
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
+    content::{Bullet, ListItem},
     error,
     headline::Headline,
-    object::{Bullet, ListItem},
 };
 
 const TAG_CHAR: char = ':';

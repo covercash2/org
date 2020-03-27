@@ -5,10 +5,11 @@ use ncurses::*;
 use std::{fs::File, io::prelude::*, io::BufReader};
 
 mod config;
+mod content;
+pub mod error;
 mod headline;
 pub mod object;
 pub mod parser;
-pub mod error;
 
 mod peek_while;
 
@@ -30,11 +31,7 @@ fn main() -> error::Result<()> {
 
     content
         .map(|content| {
-	    if let Some(objects) = content.objects() {
-		for object in objects {
-		    println!("{}", object);
-		}
-	    }
+            println!("{}", content);
         })
         .expect("error parsing text");
 
