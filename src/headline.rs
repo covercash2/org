@@ -1,7 +1,6 @@
 use std::{fmt, fmt::Display, iter};
 
-use crate::content::Content;
-use crate::object::Document;
+use crate::{content::Content, iter::*, object::Document};
 
 #[derive(Debug)]
 pub struct HeadlineGroup<'t> {
@@ -10,30 +9,20 @@ pub struct HeadlineGroup<'t> {
     pub sub_headlines: Option<Vec<HeadlineGroup<'t>>>,
 }
 
+type HeadlineIterator<'t> = Iterator<Item = &'t HeadlineGroup<'t>>;
+
 impl<'t> HeadlineGroup<'t> {
     pub fn content(&'t self) -> impl Iterator<Item = &'t Content<'t>> {
         self.content.iter().flat_map(|content| content.iter())
     }
 
-    pub fn sub_headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> {
-        self.sub_headlines
-            .iter()
-            .flat_map(|sub_headlines| sub_headlines.iter())
+    pub fn sub_headlines(&'t self) -> SubHeadlines<'t> {
+        (&self.sub_headlines).into()
     }
 
-    pub fn all_sub_headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> + 't {
-        iter::once(self).chain(
-            self.sub_headlines()
-                .flat_map(|sub_headline| sub_headline.sub_headlines()),
-        )
-    }
-}
-
-struct Headlines<'t, I>
-where
-    I: Iterator<Item = &'t HeadlineGroup<'t>>,
-{
-    iterator: I,
+    // pub fn all_headlines(&self) -> Headlines<'t> {
+    //     Headlines::from(sub_headlines)
+    // }
 }
 
 #[derive(Debug)]

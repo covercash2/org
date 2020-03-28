@@ -10,7 +10,8 @@ pub struct Document<'t> {
 
 impl<'t> Document<'t> {
     pub fn headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> {
-        self.root.all_sub_headlines()
+        //self.root.all_sub_headlines()
+        iter::empty()
     }
 }
 
