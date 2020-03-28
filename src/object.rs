@@ -1,6 +1,6 @@
 use std::{fmt, fmt::Display, iter};
 
-use crate::headline::{Headline, HeadlineGroup};
+use crate::headline::HeadlineGroup;
 
 #[derive(Debug)]
 pub struct Document<'t> {
@@ -10,8 +10,7 @@ pub struct Document<'t> {
 
 impl<'t> Document<'t> {
     pub fn headlines(&'t self) -> impl Iterator<Item = &'t HeadlineGroup<'t>> {
-        //self.root.all_sub_headlines()
-        iter::empty()
+        self.root.all_headlines()
     }
 }
 
@@ -53,7 +52,7 @@ mod tests {
             sub_headlines.len()
         );
 
-        let headlines: Vec<&HeadlineGroup<'_>> = content.headlines().collect();
+        let headlines: Vec<&HeadlineGroup> = content.headlines().collect();
 
         headlines.iter().for_each(|headline| {
             println!("{}", headline);

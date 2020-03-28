@@ -9,20 +9,18 @@ pub struct HeadlineGroup<'t> {
     pub sub_headlines: Option<Vec<HeadlineGroup<'t>>>,
 }
 
-type HeadlineIterator<'t> = Iterator<Item = &'t HeadlineGroup<'t>>;
-
 impl<'t> HeadlineGroup<'t> {
     pub fn content(&'t self) -> impl Iterator<Item = &'t Content<'t>> {
         self.content.iter().flat_map(|content| content.iter())
     }
 
-    pub fn sub_headlines(&'t self) -> SubHeadlines<'t> {
+    pub fn sub_headlines(&'t self) -> SubHeadlines<'_> {
         (&self.sub_headlines).into()
     }
 
-    // pub fn all_headlines(&self) -> Headlines<'t> {
-    //     Headlines::from(sub_headlines)
-    // }
+    pub fn all_headlines(&self) -> Headlines<'_> {
+        self.sub_headlines().into()
+    }
 }
 
 #[derive(Debug)]

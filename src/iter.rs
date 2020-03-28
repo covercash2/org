@@ -26,34 +26,36 @@ impl<'t> From<&'t Option<Vec<HeadlineGroup<'t>>>> for SubHeadlines<'t> {
     }
 }
 
-pub struct Headlines<'t> {
-    stack: Vec<SubHeadlines<'t>>,
+pub struct Headlines<'a> {
+    stack: Vec<SubHeadlines<'a>>,
 }
-impl<'t> Headlines<'t> {
-    pub fn new(headline: &'t HeadlineGroup<'t>) -> Headlines<'t> {
-        Headlines {
-            stack: vec![headline.sub_headlines()],
-        }
-    }
-}
-impl<'t> From<SubHeadlines<'t>> for Headlines<'t> {
-    fn from(sub_headlines: SubHeadlines<'t>) -> Self {
+impl<'a> From<SubHeadlines<'a>> for Headlines<'a> {
+    fn from(sub_headlines: SubHeadlines<'a>) -> Self {
         Headlines {
             stack: vec![sub_headlines],
         }
     }
 }
-impl<'t> Iterator for Headlines<'t> {
-    type Item = &'t HeadlineGroup<'t>;
+impl<'a> Iterator for Headlines<'a> {
+    type Item = &'a HeadlineGroup<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let iterator = self.stack.last_mut()?;
-
-        let next_headline = iterator.next()?;
-
-        let next_iterator = next_headline.sub_headlines();
-
-        self.stack.push(next_iterator);
-
-        None
+        find_next_headline(&mut self.stack)
     }
+}
+
+fn find_next_headline<'a>(stack: &mut Vec<SubHeadlines<'a>>) -> Option<&'a HeadlineGroup<'a>> {
+    while let Some(iterator) = stack.last_mut() {
+        match iterator.next() {
+            Some(headline_group) => {
+                // put sub header iterator on the stack
+                stack.push(headline_group.sub_headlines());
+                return Some(headline_group);
+            }
+            None => {
+                // end of top iterator
+                stack.pop();
+            }
+        }
+    }
+    None
 }
