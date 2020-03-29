@@ -1,4 +1,4 @@
-use crate::headline::{Headline, HeadlineGroup};
+use crate::headline::HeadlineGroup;
 
 pub struct SubHeadlines<'t> {
     sub_headlines: &'t Option<Vec<HeadlineGroup<'t>>>,

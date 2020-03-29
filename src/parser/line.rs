@@ -1,36 +1,13 @@
 use crate::{
     content::{Bullet, ListItem},
-    error,
     headline::Headline,
 };
-
-const TAG_CHAR: char = ':';
-const HEADER_CHAR: u8 = 42; // * characer code
-                            // TODO add * to list bullets
-                            // or not. that seems stupid
-const UNORDERED_LIST_BULLETS: [&'static str; 2] = ["-", "+"]; // [-, +]
 
 #[derive(Debug)]
 pub enum Line<'t> {
     Text(&'t str),
     Header(Headline<'t>),
     ListItem(ListItem<'t>),
-}
-
-impl<'t> Line<'t> {
-    fn is_list_item(&self) -> bool {
-        match self {
-            Line::ListItem(_) => true,
-            _ => false,
-        }
-    }
-
-    fn is_header(&self) -> bool {
-        match self {
-            Line::Header(_) => true,
-            _ => false,
-        }
-    }
 }
 
 // TODO only parse_line should be pub

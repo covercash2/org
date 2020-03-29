@@ -214,6 +214,12 @@ mod tests {
     #[test]
     fn parse_test_str() {
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
+
+        let line_num: usize = content.objects().count();
+
+        let expected_lines: usize = &TEST_TEXT.lines().count();
+
+        assert_eq!(line_num, expected_lines);
     }
 
     fn check_list<'t>(

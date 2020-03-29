@@ -18,12 +18,12 @@ impl<'t> Display for Content<'t> {
         match self {
             Content::List(items) => {
                 for item in items {
-                    write!(f, "{}", item)?;
+                    writeln!(f, "{}", item)?;
                 }
             }
             Content::Text(lines) => {
                 for line in lines {
-                    write!(f, "{}", line)?;
+                    writeln!(f, "{}", line)?;
                 }
             }
         }

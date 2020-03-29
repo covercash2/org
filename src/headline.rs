@@ -1,6 +1,6 @@
-use std::{fmt, fmt::Display, iter};
+use std::{fmt, fmt::Display};
 
-use crate::{content::Content, iter::*, object::Document};
+use crate::{content::Content, iter::*, object::Object};
 
 #[derive(Debug)]
 pub struct HeadlineGroup<'t> {
@@ -20,6 +20,10 @@ impl<'t> HeadlineGroup<'t> {
 
     pub fn all_headlines(&self) -> Headlines<'_> {
         self.sub_headlines().into()
+    }
+
+    pub fn all_objects(&self) -> impl Iterator<Item = &'t Object<'t>> {
+        std::iter::empty()
     }
 }
 
@@ -142,12 +146,12 @@ impl<'t> Display for Headline<'t> {
 
 impl<'t> Display for HeadlineGroup<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.headline)?;
+        writeln!(f, "{}", self.headline)?;
 
         match &self.content {
             Some(content) => {
                 for object in content {
-                    write!(f, "{}", object)?;
+                    writeln!(f, "{}", object)?;
                 }
             }
             _ => {}
