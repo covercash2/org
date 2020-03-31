@@ -15,10 +15,10 @@ impl<'t> HeadlineGroup<'t> {
     }
 
     pub fn content_len(&self) -> usize {
-	self.content.as_ref().map(|content| {
-	    content.len()
-	})
-	    .unwrap_or(0)
+        self.content
+            .as_ref()
+            .map(|content| content.len())
+            .unwrap_or(0)
     }
 
     pub fn sub_headlines(&'t self) -> SubHeadlines<'_> {
@@ -26,22 +26,22 @@ impl<'t> HeadlineGroup<'t> {
     }
 
     pub fn sub_headlines_len(&'t self) -> usize {
-	self.sub_headlines.as_ref().map(|sub_headlines| {
-	    sub_headlines.len()
-	})
-	    .unwrap_or(0)
+        self.sub_headlines
+            .as_ref()
+            .map(|sub_headlines| sub_headlines.len())
+            .unwrap_or(0)
     }
 
     pub fn sub_objects(&'t self) -> SubObjects<'_> {
-	self.into_iter()
+        self.into_iter()
     }
 
     pub fn all_headlines(&self) -> Headlines<'_> {
         self.sub_headlines().into()
     }
 
-    pub fn all_objects(&self) -> impl Iterator<Item = &'t Object<'t>> {
-        std::iter::empty()
+    pub fn all_objects(&'t self) -> impl Iterator<Item = Object<'t>> {
+        AllObjects::new(self)
     }
 }
 

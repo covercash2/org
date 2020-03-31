@@ -75,6 +75,15 @@ impl<'t> From<&'t Option<Vec<HeadlineGroup<'t>>>> for SubHeadlines<'t> {
 pub struct AllObjects<'a> {
     stack: Vec<SubObjects<'a>>,
 }
+
+impl<'t> AllObjects<'t> {
+    pub fn new(root: &'t HeadlineGroup<'t>) -> AllObjects<'t> {
+	AllObjects {
+	    stack: vec![root.into_iter()]
+	}
+    }
+}
+
 impl<'a> Iterator for AllObjects<'a> {
     type Item = Object<'a>;
 

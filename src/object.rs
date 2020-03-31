@@ -22,7 +22,7 @@ impl<'t> Document<'t> {
         self.root.all_headlines()
     }
 
-    pub fn objects(&self) -> impl Iterator<Item = &'t Object<'t>> {
+    pub fn objects(&'t self) -> impl Iterator<Item = Object<'t>> {
         self.root.all_objects()
     }
 }
