@@ -14,8 +14,26 @@ impl<'t> HeadlineGroup<'t> {
         self.content.iter().flat_map(|content| content.iter())
     }
 
+    pub fn content_len(&self) -> usize {
+	self.content.as_ref().map(|content| {
+	    content.len()
+	})
+	    .unwrap_or(0)
+    }
+
     pub fn sub_headlines(&'t self) -> SubHeadlines<'_> {
         (&self.sub_headlines).into()
+    }
+
+    pub fn sub_headlines_len(&'t self) -> usize {
+	self.sub_headlines.as_ref().map(|sub_headlines| {
+	    sub_headlines.len()
+	})
+	    .unwrap_or(0)
+    }
+
+    pub fn sub_objects(&'t self) -> SubObjects<'_> {
+	self.into_iter()
     }
 
     pub fn all_headlines(&self) -> Headlines<'_> {

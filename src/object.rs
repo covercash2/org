@@ -11,9 +11,10 @@ pub struct Document<'t> {
     pub root: HeadlineGroup<'t>,
 }
 
+#[derive(Debug)]
 pub enum Object<'t> {
-    Headline(Headline<'t>),
-    Content(Content<'t>),
+    Headline(&'t HeadlineGroup<'t>),
+    Content(&'t Content<'t>),
 }
 
 impl<'t> Document<'t> {
@@ -22,8 +23,19 @@ impl<'t> Document<'t> {
     }
 
     pub fn objects(&self) -> impl Iterator<Item = &'t Object<'t>> {
-        // TODO
-        std::iter::empty()
+        self.root.all_objects()
+    }
+}
+
+impl<'t> From<&'t HeadlineGroup<'t>> for Object<'t> {
+    fn from(headline: &'t HeadlineGroup<'t>) -> Self {
+        Object::Headline(headline)
+    }
+}
+
+impl<'t> From<&'t Content<'t>> for Object<'t> {
+    fn from(content: &'t Content<'t>) -> Self {
+        Object::Content(content)
     }
 }
 

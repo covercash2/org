@@ -217,7 +217,7 @@ mod tests {
 
         let line_num: usize = content.objects().count();
 
-        let expected_lines: usize = &TEST_TEXT.lines().count();
+        let expected_lines: usize = TEST_TEXT.lines().count();
 
         assert_eq!(line_num, expected_lines);
     }
