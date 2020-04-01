@@ -1,18 +1,8 @@
 #![feature(str_strip)]
 
-use ncurses::*;
-
 use std::{fs::File, io::prelude::*, io::BufReader};
 
-mod config;
-mod content;
-pub mod error;
-mod headline;
-mod iter;
-pub mod object;
-pub mod parser;
-
-mod peek_while;
+use org::{config, error, parser};
 
 fn main() -> error::Result<()> {
     let config = config::Config::from_command_line_parameters()
