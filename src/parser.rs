@@ -102,7 +102,6 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
     while let Some(line) = cursor.current_line() {
         match line {
             Line::Header(new_headline) => {
-                println!("parsing header: {:?}", new_headline);
                 if new_headline.level() > headline.level() {
                     let new_header = cursor
                         .advance()
@@ -117,26 +116,20 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
 
                     // recurse and add subheader
                     let sub_header = parse_headline_objects(new_header, cursor, possible_states)?;
-                    println!("new sub header: {:?}\n", sub_header);
                     sub_headlines
                         .get_or_insert(Default::default())
                         .push(sub_header)?;
                 } else {
-                    println!("break");
                     break;
                 }
             }
             Line::ListItem(_) => {
-                println!("parse list");
                 content
                     .get_or_insert(Default::default())
                     .push(parse_list(cursor).into())?;
             }
-            Line::Text(line) => {
-                println!("parse text: {:?}", line);
+            Line::Text(_) => {
                 let text = parse_text(cursor);
-                println!("text parsed: {:?}", text);
-                println!("current line: {:?}", cursor.current_line());
                 content.get_or_insert(Default::default()).push(text)?;
             }
         }
@@ -286,6 +279,13 @@ mod tests {
         let expected_objects: usize = 9;
 
         assert_eq!(object_num, expected_objects);
+
+        let expected_lines: usize = 25;
+        let test_text_lines = TEST_TEXT.lines().count();
+        let content_lines = format!("{}", content).lines().count();
+
+        assert_eq!(test_text_lines, expected_lines);
+        assert_eq!(content_lines, content_lines);
     }
 
     fn check_list<'t>(

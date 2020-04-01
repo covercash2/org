@@ -42,7 +42,7 @@ impl<'t> From<&'t Content<'t>> for Object<'t> {
 impl<'t> Display for Document<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for headline in self.root.sub_headlines() {
-            writeln!(f, "{}", headline)?;
+            write!(f, "{}", headline)?;
         }
         Ok(())
     }
