@@ -5,8 +5,8 @@ of org-mode front ends, such as a web interface or mobile app.
 
 A companion cli app is being developed as well, and it is currently a WIP.
 
-The point of this project is not complete feature parity with emacs' `org-mode`.
-`org-mode` features like spreadsheets may not be possible because of the reliance
+The point of this project is not complete feature parity with emacs' ~org-mode~.
+~org-mode~ features like spreadsheets may not be possible because of the reliance
 on elisp -- unless there is a way to embed an elisp interpreter.
 
 * Features
