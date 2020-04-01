@@ -96,12 +96,13 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
     cursor: &mut C,
     possible_states: &[&str],
 ) -> error::Result<HeadlineGroup<'t>> {
-    let mut content: Option<Vec<Content<'t>>> = None;
-    let mut sub_headlines: Option<Vec<HeadlineGroup<'t>>> = None;
+    let mut content: Option<LimitedVec<Content<'t>>> = None;
+    let mut sub_headlines: Option<LimitedVec<HeadlineGroup<'t>>> = None;
 
     while let Some(line) = cursor.current_line() {
         match line {
             Line::Header(new_headline) => {
+                println!("parsing header: {:?}", new_headline);
                 if new_headline.level() > headline.level() {
                     let new_header = cursor
                         .advance()
@@ -116,36 +117,90 @@ fn parse_headline_objects<'t, C: Cursor<'t>>(
 
                     // recurse and add subheader
                     let sub_header = parse_headline_objects(new_header, cursor, possible_states)?;
-                    sub_headlines.get_or_insert(Vec::new()).push(sub_header);
+                    println!("new sub header: {:?}\n", sub_header);
+                    sub_headlines
+                        .get_or_insert(Default::default())
+                        .push(sub_header)?;
                 } else {
+                    println!("break");
                     break;
                 }
             }
             Line::ListItem(_) => {
+                println!("parse list");
                 content
-                    .get_or_insert(Vec::new())
-                    .push(parse_list(cursor).into());
+                    .get_or_insert(Default::default())
+                    .push(parse_list(cursor).into())?;
             }
-            Line::Text(_) => {
-                content.get_or_insert(Vec::new()).push(parse_text(cursor));
+            Line::Text(line) => {
+                println!("parse text: {:?}", line);
+                let text = parse_text(cursor);
+                println!("text parsed: {:?}", text);
+                println!("current line: {:?}", cursor.current_line());
+                content.get_or_insert(Default::default()).push(text)?;
             }
         }
     }
 
     return Ok(HeadlineGroup {
         headline,
-        content,
-        sub_headlines,
+        content: content.map(LimitedVec::take),
+        sub_headlines: sub_headlines.map(LimitedVec::take),
     });
+}
+
+struct LimitedVec<T> {
+    vec: Vec<T>,
+    limit: usize,
+}
+
+impl<T> Default for LimitedVec<T> {
+    fn default() -> Self {
+        LimitedVec {
+            vec: Vec::new(),
+            limit: 64, // TODO 64 might be a little low
+        }
+    }
+}
+
+impl<T> LimitedVec<T> {
+    fn take(self) -> Vec<T> {
+        self.vec
+    }
+}
+
+trait Limited<T> {
+    fn limit(&self) -> usize;
+    fn push(&mut self, item: T) -> error::Result<()>;
+}
+impl<T> Limited<T> for LimitedVec<T> {
+    fn limit(&self) -> usize {
+        self.limit
+    }
+    fn push(&mut self, item: T) -> error::Result<()> {
+        if self.vec.len() < self.limit() {
+            self.vec.push(item);
+            Ok(())
+        } else {
+            Err(error::OrgError::Unexpected(format!(
+                "capacity reached in limited vec: limit == {}",
+                self.limit()
+            )))
+        }
+    }
 }
 
 fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
     let mut list_items = Vec::new();
     let mut bullet_opt: Option<Bullet> = None;
-    while let Some(Line::ListItem(list_item)) = cursor.advance() {
-        let bullet = bullet_opt.get_or_insert(list_item.bullet);
-        if list_item.bullet == *bullet {
-            list_items.push(list_item)
+    while let Some(Line::ListItem(item)) = cursor.current_line() {
+        let bullet = bullet_opt.get_or_insert(item.bullet);
+        if !item.bullet.matches(bullet) {
+            break;
+        }
+        match cursor.advance() {
+            Some(Line::ListItem(item)) => list_items.push(item),
+            _ => eprintln!("unexpected error"),
         }
     }
     return list_items;
@@ -153,8 +208,11 @@ fn parse_list<'t, C: Cursor<'t>>(cursor: &mut C) -> Vec<ListItem<'t>> {
 
 fn parse_text<'t, C: Cursor<'t>>(cursor: &mut C) -> Content<'t> {
     let mut text_lines = Vec::new();
-    while let Some(Line::Text(text_line)) = cursor.advance() {
-        text_lines.push(text_line);
+    while let Some(Line::Text(_)) = cursor.current_line() {
+        match cursor.advance() {
+            Some(Line::Text(line)) => text_lines.push(line),
+            _ => eprintln!("unexpected error"),
+        }
     }
     Content::Text(text_lines)
 }
@@ -213,13 +271,21 @@ mod tests {
 
     #[test]
     fn parse_test_str() {
+        println!("{}", TEST_TEXT);
+
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
 
-        let line_num: usize = content.objects().count();
+        let headlines: Vec<_> = content.headlines().collect();
 
-        let expected_lines: usize = TEST_TEXT.lines().count();
+        let object_num: usize = content.objects().count();
 
-        assert_eq!(line_num, expected_lines);
+        let expected_headline_num: usize = 5;
+
+        assert_eq!(headlines.len(), expected_headline_num);
+
+        let expected_objects: usize = 9;
+
+        assert_eq!(object_num, expected_objects);
     }
 
     fn check_list<'t>(

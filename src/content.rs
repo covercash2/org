@@ -57,6 +57,21 @@ impl Bullet {
             }),
         }
     }
+
+    pub fn matches(&self, other: &Bullet) -> bool {
+        if self == other {
+            true
+        } else {
+            self.index().is_some()
+        }
+    }
+
+    pub fn index(&self) -> Option<usize> {
+        match self {
+            Bullet::Numeric(index) => Some(*index),
+            _ => None,
+        }
+    }
 }
 
 impl<'t> Display for ListItem<'t> {

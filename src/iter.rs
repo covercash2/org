@@ -21,7 +21,8 @@ impl<'t> Iterator for SubObjects<'t> {
     type Item = Object<'t>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.headline_group
+        let next = self
+            .headline_group
             .content
             .as_ref()
             // check for content[index]
@@ -41,8 +42,7 @@ impl<'t> Iterator for SubObjects<'t> {
                 self.index += 1;
                 object
             });
-	println!("{:?}", next);
-	next
+        next
     }
 }
 
@@ -78,9 +78,9 @@ pub struct AllObjects<'a> {
 
 impl<'t> AllObjects<'t> {
     pub fn new(root: &'t HeadlineGroup<'t>) -> AllObjects<'t> {
-	AllObjects {
-	    stack: vec![root.into_iter()]
-	}
+        AllObjects {
+            stack: vec![root.into_iter()],
+        }
     }
 }
 
@@ -123,20 +123,6 @@ trait Tree {
     fn sub_nodes(&self) -> Self::SubNodes;
     fn all_nodes(&self) -> Self::AllNodes;
 }
-
-// trait Recursive<'a> {
-//     type Item: 'a;
-//     type Iterator: Iterator<Item = &'a Self::Item>;
-//     fn sub_items(&'a self) -> Self::Iterator;
-// }
-
-// impl<'t> Recursive<'t> for HeadlineGroup<'t> {
-//     type Item = HeadlineGroup<'t>;
-//     type Iterator = SubHeadlines<'t>;
-//     fn sub_items(&'t self) -> Self::Iterator {
-//         self.sub_headlines()
-//     }
-// }
 
 fn find_next_object<'a>(stack: &mut Vec<SubObjects<'a>>) -> Option<Object<'a>> {
     while let Some(iterator) = stack.last_mut() {
