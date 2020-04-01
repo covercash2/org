@@ -169,7 +169,7 @@ impl<'t> Display for HeadlineGroup<'t> {
         match &self.content {
             Some(content) => {
                 for object in content {
-                    writeln!(f, "{}", object)?;
+                    write!(f, "{}", object)?;
                 }
             }
             _ => {}

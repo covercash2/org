@@ -246,7 +246,8 @@ mod tests {
 7. these
 8. so
 9. here's
-10. ten";
+10. ten
+"; // end with a new line
 
     const GOOD_LIST_0: &str = "- a good list
 - not necessarily in order
@@ -268,6 +269,14 @@ mod tests {
 
         let content = parse_org_text(&TEST_TEXT, TEST_STATES.to_vec()).unwrap();
 
+        println!("parsed output:");
+        println!("{}", content);
+
+        println!("objects:");
+        for object in content.objects() {
+            println!("{:?}", object);
+        }
+
         let headlines: Vec<_> = content.headlines().collect();
 
         let object_num: usize = content.objects().count();
@@ -280,12 +289,12 @@ mod tests {
 
         assert_eq!(object_num, expected_objects);
 
-        let expected_lines: usize = 25;
+        let expected_lines: usize = 26;
         let test_text_lines = TEST_TEXT.lines().count();
         let content_lines = format!("{}", content).lines().count();
 
         assert_eq!(test_text_lines, expected_lines);
-        assert_eq!(content_lines, content_lines);
+        assert_eq!(content_lines, test_text_lines);
     }
 
     fn check_list<'t>(
