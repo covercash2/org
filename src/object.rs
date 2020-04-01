@@ -2,7 +2,7 @@ use std::{fmt, fmt::Display};
 
 use crate::{
     content::Content,
-    headline::{Headline, HeadlineGroup},
+    headline::HeadlineGroup,
 };
 
 #[derive(Debug)]

@@ -1,54 +1,38 @@
-use clap::{App, Arg};
-
-const PATH: &'static str = "/mnt/space/notes/orgmode.org";
-
-const STATUS_LABELS: [&'static str; 3] = ["TODO", "STARTED", "DONE"];
+use crate::{error, status_labels::StatusLabels};
 
 pub struct Config {
     pub file_path: String,
-    pub status_labels: Vec<String>,
+    pub status_labels: StatusLabels,
 }
 
-impl Config {
-    pub fn from_command_line_parameters() -> Result<Config, &'static str> {
-        let matches = App::new("org")
-            .version("0.1.0")
-            .author("Chris Overcash <covercash2@gmail.com>")
-            .about("command line parser for org formatted files")
-            .arg(
-                Arg::with_name("file")
-                    .short("f")
-                    .long("file")
-                    .takes_value(true)
-                    .help("path to org file to parse"),
-            )
-            .arg(
-                Arg::with_name("status_labels")
-                    .short("l")
-                    .long("labels")
-                    .takes_value(true)
-                    .help("comma (',') separated values, e.g. TODO,STARTED,DONE"),
-            )
-            .get_matches();
+pub struct Builder {
+    file_path: Option<String>,
+    status_labels: Option<StatusLabels>,
+}
 
-        let file = matches.value_of("file").unwrap_or_else(|| {
-            eprintln!(
-                "file input will be required, but a default is currently provided for testing"
-            );
-            PATH
-        });
+impl Builder {
+    pub fn build(self) -> error::Result<Config> {
+        let file_path = match self.file_path {
+            Some(path) => Ok(path),
+            // TODO config error?
+            None => Err(error::OrgError::unexpected("did not receive file path")),
+        }?;
 
-        let labels: Vec<String> = matches
-            .value_of("status_labels")
-            .map(|labels_string| labels_string.split(",").collect())
-            .unwrap_or(STATUS_LABELS.to_vec())
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let status_labels = self.status_labels.unwrap_or_default();
 
         Ok(Config {
-            file_path: file.to_string(),
-            status_labels: labels,
+            file_path,
+            status_labels,
         })
+    }
+
+    pub fn file_path(mut self, path: String) -> Self {
+        self.file_path.replace(path);
+        self
+    }
+
+    pub fn status_labels(mut self, labels: StatusLabels) -> Self {
+        self.status_labels.replace(labels);
+        self
     }
 }
