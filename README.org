@@ -11,14 +11,14 @@ on elisp -- unless there is a way to embed an elisp interpreter.
 
 * Features
 ** parsing
-`org` can parse an org file into an abstract syntax tree. It is designed
+~org~ can parse an org file into an abstract syntax tree. It is designed
 to emit warnings about possible formatting errors or malformed or structures.
 ** searching
-`org` utilizes the power of Rust iterators to iterate through the syntax tree
+~org~ utilizes the power of Rust iterators to iterate through the syntax tree
 with several types of traversal.
 ** formatting
-a fortunate side-effect of the design is that `org` will produce formatted
-org structures when the output is reprinted. `org-cli` will provide an easy
+a fortunate side-effect of the design is that ~org~ will produce formatted
+org structures when the output is reprinted. ~org-cli~ will provide an easy
 way to format org files.
 
 * todo list
